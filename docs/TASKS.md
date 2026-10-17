@@ -3,16 +3,18 @@
 ## Milestone 0 — Baseline and memory
 - [x] Inspect repository; it was initially empty.
 - [x] Add AGENTS.md operating rules.
-- [ ] Add all persistent memory documents.
-- [ ] Read back and verify committed files.
+- [x] Add all persistent memory documents.
+- [x] Read back and verify committed files through GitHub.
 - [ ] Record initial repository/tooling facts.
 
 ## Milestone 1 — Deterministic core
-- [ ] Define typed models for test cases, executions, assertions, and results.
-- [ ] Define provider-neutral runner interface.
-- [ ] Implement deterministic local runner.
-- [ ] Implement explicit assertion evaluation.
-- [ ] Add unit tests and run them; record exact evidence.
+- [x] Define typed models for regression cases, assertions, and results.
+- [x] Define provider-neutral runner interface.
+- [x] Implement deterministic local runner.
+- [x] Implement explicit assertion evaluation.
+- [x] Add unit tests.
+- [ ] Execute tests and record exact evidence.
+- [x] Add a demo CLI and CI workflow (execution/results pending).
 
 ## Milestone 2 — Persistence and regression workflow
 - [ ] Add local persistence and schema/version management.
