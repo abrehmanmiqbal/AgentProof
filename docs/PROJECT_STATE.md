@@ -4,17 +4,17 @@
 - Repository: abrehmanmiqbal/AgentProof
 - Initial repository audit found no existing project files.
 - AGENTS.md committed as cb14454ac8402babd4be306f3d123879583290e3.
-- No application code or tests have been run yet.
-- No CI, package setup, API, CLI, UI, or regression engine has been verified to exist.
+- Initial Python package, deterministic runner, assertion evaluator, regression engine, CLI demo, pytest tests, and GitHub Actions workflow have been committed.
+- Tests have not been executed in a local environment; CI results are not yet verified.
+- Persistence, API, UI, external model integrations, and release readiness are not implemented.
 
 ## Current milestone
-Milestone 0 — repository baseline and persistent project memory.
+Milestone 1 — first deterministic core slice is committed; verification is pending. Milestone 0 memory files are committed and read back successfully.
 
 ## Immediate next actions
-1. Add remaining project memory files.
-2. Verify all files through GitHub read-back.
-3. Inspect repository metadata and available tooling.
-4. Start Milestone 1 with the smallest runnable deterministic core and tests.
+1. Run CI or execute tests in a local Python 3.11+ environment.
+2. Fix any failures and record exact test evidence.
+3. Add persistence and saved regression case/run history only after the core passes.
 
 ## Constraints
 - Free-first and offline-capable core; no paid API or hosted service required for the core demo.
