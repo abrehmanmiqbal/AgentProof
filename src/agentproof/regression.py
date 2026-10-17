@@ -11,7 +11,21 @@ class RegressionEngine:
         self._runner = runner
 
     def run_case(self, case: RegressionCase) -> RegressionResult:
-        output = self._runner.run(case.input)
+        """Run one case. Runner failures are recorded as failed results, never raised."""
+        try:
+            output = self._runner.run(case.input)
+        except Exception as exc:  # noqa: BLE001 - agent code is untrusted; record, don't crash
+            return RegressionResult(
+                case_id=case.case_id,
+                passed=False,
+                error=f"Runner raised {type(exc).__name__}: {exc}",
+            )
+        if not isinstance(output, dict):
+            return RegressionResult(
+                case_id=case.case_id,
+                passed=False,
+                error=f"Runner must return a dict, got {type(output).__name__}",
+            )
         results = [evaluate_assertion(output, spec) for spec in case.assertions]
         return RegressionResult(
             case_id=case.case_id,

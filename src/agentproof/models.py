@@ -43,5 +43,6 @@ class AssertionResult(BaseModel):
 class RegressionResult(BaseModel):
     case_id: str
     passed: bool
-    output: dict[str, Any]
-    assertions: list[AssertionResult]
+    output: dict[str, Any] = Field(default_factory=dict)
+    assertions: list[AssertionResult] = Field(default_factory=list)
+    error: str | None = None
