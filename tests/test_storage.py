@@ -161,3 +161,10 @@ def test_database_from_newer_version_is_refused(tmp_path):
     conn.close()
     with pytest.raises(SchemaTooNewError):
         Repository(path)
+
+
+def test_corrupt_database_file_raises_storage_error_not_raw_sqlite(tmp_path):
+    path = tmp_path / "bad.db"
+    path.write_text("this is not a database")
+    with pytest.raises(StorageError):
+        Repository(path)

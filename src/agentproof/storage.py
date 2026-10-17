@@ -102,9 +102,15 @@ def _check_size(text: str, what: str) -> None:
 
 class Repository:
     def __init__(self, path: str | Path = ":memory:") -> None:
-        self._conn = sqlite3.connect(str(path))
-        self._conn.execute("PRAGMA foreign_keys = ON")
-        self._migrate()
+        try:
+            self._conn = sqlite3.connect(str(path))
+            self._conn.execute("PRAGMA foreign_keys = ON")
+            self._migrate()
+        except sqlite3.Error as exc:
+            conn = getattr(self, "_conn", None)
+            if conn is not None:
+                conn.close()
+            raise StorageError(f"Cannot open database '{path}': {exc}") from exc
 
     def close(self) -> None:
         self._conn.close()

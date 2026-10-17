@@ -31,3 +31,23 @@ class DeterministicLocalRunner:
             return {"echo": input_data, "action": "echo"}
 
         return {"error": "unsupported_action", "action": action}
+
+
+class LegacyGreeterRunner(DeterministicLocalRunner):
+    """Deliberately 'buggy' deterministic runner: greets with 'Hi' instead of 'Hello'.
+
+    Exists so the failure -> fix -> rerun -> compare loop can be demonstrated and tested
+    fully offline (compare runner 'local-legacy' as before vs 'local' as after).
+    """
+
+    def run(self, input_data: dict[str, Any]) -> dict[str, Any]:
+        output = super().run(input_data)
+        if output.get("action") == "greet":
+            output = {**output, "message": output["message"].replace("Hello,", "Hi,", 1)}
+        return output
+
+
+RUNNERS: dict[str, type] = {
+    "local": DeterministicLocalRunner,
+    "local-legacy": LegacyGreeterRunner,
+}
