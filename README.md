@@ -6,7 +6,7 @@ AgentProof is being built free-first: the core demo should run locally without p
 
 ## Project status
 
-Early development. The initial deterministic core is being implemented. APIs, persistence, UI, external model integrations, and release readiness are not yet claimed as complete.
+Early development. The deterministic core, SQLite persistence, comparison engine, and CLI are implemented and tested locally (see docs/TEST_EVIDENCE.md). HTTP API, UI, report export, real-agent adapters, and release readiness are not yet implemented.
 
 ## Quick start
 
@@ -21,6 +21,21 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 pytest
 ```
+
+## Try the full loop offline
+
+```bash
+cat > case.json <<'JSON'
+{"case_id":"greet-ava","name":"Greet Ava","input":{"action":"greet","name":"Ava"},
+ "assertions":[{"path":"message","operator":"equals","expected":"Hello, Ava!"}]}
+JSON
+agentproof case add case.json
+agentproof run greet-ava --label before --runner local-legacy   # fails (exit 1)
+agentproof run greet-ava --label after  --runner local          # passes
+agentproof compare 1 2                                          # verdict: improved
+```
+
+Data is stored in `./agentproof.db` (override with `--db` or `AGENTPROOF_DB`). `compare` exits 1 if the verdict is `regressed`.
 
 ## First vertical slice
 

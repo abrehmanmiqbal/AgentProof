@@ -20,4 +20,13 @@ Use Python with typed domain models and pytest for the first vertical slice. Cho
 - Claiming statistical or semantic reliability from an ungrounded score.
 - Public deployment before security and release checks.
 
-This is an initial direction, not a claim that any components have been implemented.
+## Implemented (verified 2026-10-17, Python 3.12.3)
+- `models.py` typed cases/assertions/results (pydantic, `extra=forbid`, frozen).
+- `runner.py` `AgentRunner` protocol; `local` and `local-legacy` deterministic runners; `RUNNERS` registry.
+- `assertions.py` path resolution + equals/not_equals/contains/exists with type-strict equality.
+- `regression.py` engine; runner errors become failed results.
+- `storage.py` SQLite `Repository` (migrations, hashing, size limits). Only module that touches SQL.
+- `comparison.py` assertion-level diff and verdict.
+- `cli.py` thin layer over the above; case files read with a size cap and validated, never executed.
+
+Still planned: reports, HTTP API, UI, real-agent adapters (require an isolation design first).

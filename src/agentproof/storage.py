@@ -14,6 +14,7 @@ import json
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Self
 
 from pydantic import BaseModel, ConfigDict
 
@@ -115,7 +116,7 @@ class Repository:
     def close(self) -> None:
         self._conn.close()
 
-    def __enter__(self) -> Repository:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: object) -> None:

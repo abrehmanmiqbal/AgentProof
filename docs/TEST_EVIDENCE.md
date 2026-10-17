@@ -1,11 +1,24 @@
 # Test Evidence
+Only commands actually executed are listed. Environment: Linux container, Python 3.12.3 venv, pydantic 2.14.1, pytest 8.4.2, ruff 0.17.1. Python 3.11: NOT available/NOT tested. GitHub Actions: NOT observed.
 
-## 2026-10-17 — Repository baseline
-- Action: inspected repository through GitHub integration.
-- Finding: repository was initially empty.
-- Change: AGENTS.md and eight project-memory documents were committed; all nine were read back successfully through GitHub.
-- Core code committed: Pydantic domain models, deterministic local runner, assertion evaluator, regression engine, CLI demo, pytest test file, packaging metadata, and GitHub Actions workflow.
-- Local tests: NOT RUN — this session has not executed the repository in a Python environment.
-- CI status: NOT checked/verified; workflow was added but no successful run has been confirmed.
-- Build status: NOT run.
-- Next: execute `python -m pip install -e ".[dev]"`, `pytest`, and `agentproof demo` in a Python 3.11+ environment; record actual output before claiming success.
+## 2026-10-17 (session 1) — baseline
+- Repo was empty; AGENTS.md, docs, and first core slice committed via GitHub integration. No code executed.
+
+## 2026-10-17 (session 2)
+1. `git clone https://github.com/abrehmanmiqbal/AgentProof` — OK (HEAD d5b6852).
+2. `python3 -m venv .venv && pip install -e ".[dev]"` — OK.
+3. `pytest` on committed code — **5 passed in 0.10s**.
+4. `agentproof demo` on committed code — exit 0, both assertions passed.
+5. Edge-case probe script against committed code found 3 defects (all reproduced before fixing):
+   - `evaluate_assertion({"a":[...]}, path "a.²")` -> `ValueError` crash (str.isdigit accepts Unicode digits).
+   - `equals` with actual `True`, expected `1` -> passed (false positive).
+   - Runner raising `RuntimeError` -> exception propagated out of `RegressionEngine.run_case`.
+6. Added tests/test_hardening.py first: **6 failed, 7 passed** (expected failures). After fixes: **13 passed**.
+7. Added storage + tests: **26 passed**. Added comparison + tests: **34 passed**. Added CLI + tests: **42 passed**.
+8. Black-box run of installed `agentproof` binary in a temp dir: `case add` exit 0; `run --runner local-legacy` exit 1 (passed:false, actual "Hi, Ava!"); `run --runner local` exit 0; `compare 1 2` exit 0, verdict `improved`, assertion `message` change `fixed`.
+9. Hostile probes via binary: invalid UTF-8 file -> exit 2 clean error; 5000-deep JSON nesting -> exit 2 ("recursion limit exceeded"); compare missing run -> exit 2; non-SQLite file as `--db` -> **raw traceback, exit 1 (real defect)**. Added 2 tests (failed first: 2 failed, 42 passed), fixed in `Repository.__init__`; rerun: exit 2 with message, **44 passed in 0.22s**.
+10. `ruff check .` — initially 2 findings (I001 import order; PYI034 `__enter__` return type); fixed; now **All checks passed!**. Final: `pytest` **44 passed in 0.22s**; `agentproof demo` exit 0.
+11. `git push origin HEAD:main` — **FAILED: no credentials** (`could not read Username for 'https://github.com'`).
+
+## Not verified
+Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.

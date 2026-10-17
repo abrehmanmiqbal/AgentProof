@@ -21,6 +21,21 @@
 **Reason:** Reduce code-execution and prompt/tool injection risk.
 
 ## D-005: Delay framework lock-in until environment inspection
-**Status:** Pending implementation  
-**Decision:** Inspect available repository files and tooling before choosing the full dependency stack.  
+**Status:** Resolved (session 2)  
+**Decision:** Keep the dependency set minimal: pydantic only at runtime; persistence uses stdlib `sqlite3`; no web framework yet. Revisit when the HTTP API is built.  
 **Reason:** Avoid unnecessary complexity and unsupported assumptions.
+
+## D-006: Type-strict equality for assertions
+**Status:** Accepted  
+**Decision:** `equals`/`not_equals` never equate bool with int (True != 1), recursively; int/float still compare numerically.  
+**Reason:** Python's `True == 1` produced false passes, violating D-003.
+
+## D-007: Runner failures are results, not exceptions
+**Status:** Accepted  
+**Decision:** Runner exceptions and non-dict output are recorded as failed `RegressionResult` with `error` set.  
+**Reason:** Agent code is untrusted/unreliable; a crash must be a persisted, comparable failure.
+
+## D-008: Persistence design
+**Status:** Accepted  
+**Decision:** SQLite with ordered append-only migrations via `PRAGMA user_version`; refuse newer schemas; runs store the SHA-256 of the exact case JSON; 1,000,000-byte cap per stored case/result.  
+**Reason:** Reproducibility, safe upgrades, bounded storage. Note: adapter-isolation design remains an open decision and must precede any adapter that executes code.

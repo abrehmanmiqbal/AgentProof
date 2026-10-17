@@ -6,7 +6,6 @@ from typing import Any
 
 from .models import AssertionOperator, AssertionResult, AssertionSpec
 
-
 _INDEX_RE = re.compile(r"[0-9]+")
 
 

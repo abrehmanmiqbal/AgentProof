@@ -1,49 +1,46 @@
 # Tasks and Milestones
+_[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only = not yet on GitHub._
 
 ## Milestone 0 — Baseline and memory
-- [x] Inspect repository; it was initially empty.
-- [x] Add AGENTS.md operating rules.
-- [x] Add all persistent memory documents.
-- [x] Read back and verify committed files through GitHub.
-- [ ] Record initial repository/tooling facts.
+- [x] Inspect repository; add AGENTS.md and memory docs.
+- [x] Record initial repository/tooling facts (Python 3.12.3, pydantic 2.14.1, pytest 8.4.2, ruff 0.17.1).
 
 ## Milestone 1 — Deterministic core
-- [x] Define typed models for regression cases, assertions, and results.
-- [x] Define provider-neutral runner interface.
-- [x] Implement deterministic local runner.
-- [x] Implement explicit assertion evaluation.
-- [x] Add unit tests.
-- [ ] Execute tests and record exact evidence.
-- [x] Add a demo CLI and CI workflow (execution/results pending).
+- [x] Typed models, runner interface, deterministic runner, assertions, unit tests, demo CLI, CI workflow file.
+- [x] Execute tests and record exact evidence (5/5 initially; 44/44 now).
+- [x] Fix real defects found: unicode-digit path crash; bool==int false pass; runner exceptions crashing engine.
+- [ ] Confirm CI actually passes on GitHub (3.11 and 3.12) — needs push access.
+- [ ] Verify on Python 3.11.
 
 ## Milestone 2 — Persistence and regression workflow
-- [ ] Add local persistence and schema/version management.
-- [ ] Save cases, runs, traces, and reports.
-- [ ] Implement rerun and before/after comparison.
-- [ ] Test persistence and reproducibility.
+- [x] SQLite persistence + explicit versioned migrations (stdlib sqlite3; see D-005).
+- [x] Save cases and runs (with case hash and result JSON).
+- [x] Rerun + assertion-based before/after comparison.
+- [x] Tests: persistence across connections, hash stability, history immutability, size limits, injection-like ids, corrupt/newer DB.
+- [ ] Persist raw traces (no trace model yet).
+- [ ] Reports: stored/exported reproducible report (Markdown + JSON).
+- [ ] Migration test with a real v1 -> v2 upgrade once a v2 exists.
+- [ ] Flakiness/repeat-run support (run N times, report stability).
 
 ## Milestone 3 — API and CLI
-- [ ] Add validated API endpoints.
-- [ ] Add CLI commands for creating, running, and comparing tests.
-- [ ] Add API/CLI integration tests and documentation.
+- [x] CLI: case add/list/show, run, runs, compare (+ exit codes) with tests.
+- [ ] CLI: case delete, `report` command, `--format markdown`, run-all/suite command.
+- [ ] Validated HTTP API (local-only bind by default) + integration tests.
+- [ ] Docs for CLI/API usage (README only has install/test right now).
 
 ## Milestone 4 — Usable interface
-- [ ] Build a minimal interface for cases, runs, assertions, and reports.
-- [ ] Verify error, empty, and loading states.
+- [ ] Minimal local UI (cases, runs, diffs, reports); empty/error/loading states.
 
 ## Milestone 5 — Security and robustness
-- [ ] Validate imported data and enforce size limits.
-- [ ] Prevent arbitrary execution and secret leakage.
-- [ ] Test malformed input, isolation, and error handling.
-- [ ] Document threat model and limitations.
+- [x] Case files: size cap (1,000,000 bytes), JSON-only parse, typed validation, `extra=forbid`; hostile/malformed/deep-nesting/invalid-UTF-8 probes rejected cleanly.
+- [ ] Redact secrets in stored outputs; limit assertion count/depth; regex-safety (ReDoS) if regex added.
+- [ ] Isolation design for real-agent adapters (subprocess sandboxing, timeouts, resource limits) — required BEFORE any adapter that runs user code/commands.
+- [ ] Threat model doc.
 
 ## Milestone 6 — Release preparation
-- [ ] Reproducible setup and offline demo.
-- [ ] CI checks and supported-version documentation.
-- [ ] License, contribution guide, examples, and changelog.
-- [ ] Run all available checks and record actual outcomes.
+- [x] Ruff added to dev extras and CI (verified locally only).
+- [ ] LICENSE (needs owner's choice), CONTRIBUTING, examples/ dir with sample case JSON, README CLI docs.
+- [ ] Clean-install verification from docs on 3.11 and 3.12.
 
 ## Milestone 7 — Distribution readiness
-- [ ] Review package/repository naming and branding availability before public claims.
-- [ ] Verify clean installation from documented instructions.
-- [ ] Prepare release notes; do not publish without authorization.
+- [ ] Naming/branding availability check; clean-install verification; release notes. Do not publish without authorization.
