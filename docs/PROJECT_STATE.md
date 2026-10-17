@@ -9,7 +9,7 @@ _Last updated: 2026-10-17 (session 2). Everything below marked "verified" was ex
 - NOT implemented: HTTP API, UI, report rendering/export (HTML/Markdown), trace import/capture, real-agent adapters (subprocess/HTTP), more assertion operators (regex, numeric compare, JSON-schema), CHANGELOG-level release docs, LICENSE, CONTRIBUTING, threat-model doc.
 
 ## Commits this session (local only, NOT pushed)
-9d1146a hardening fixes, f3ae004 storage, 6eeb09b comparison, fe75aa6 CLI + corrupt-DB fix, plus one uncommitted-at-time-of-writing batch (ruff dev dep/CI step, lint fixes, docs) committed as the final commit of the session. See `git log`.
+9d1146a hardening fixes, f3ae004 storage, 6eeb09b comparison, fe75aa6 CLI + corrupt-DB fix, e1827bf ruff dev dep/CI step, lint fixes, docs. Base on GitHub: d5b6852.
 
 ## BLOCKER
 **`git push` fails: no GitHub credentials in the execution environment** (`fatal: could not read Username for 'https://github.com'`). Nothing from session 2 is on GitHub. Apply the delivered `agentproof-session2.bundle` or the `.patch` series (see HANDOFF.md) from a machine with write access.
