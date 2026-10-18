@@ -16,6 +16,6 @@ User-visible changes are recorded here. This project has not had a software rele
 - Added `agentproof report --output PATH [--force]` (refuses to overwrite an existing file without `--force`) and `agentproof run --repeat N` (1-20; records each run, reports `stable` when every repeat had identical per-assertion outcomes; exit 1 if any repeat failed). Default `run` output is unchanged.
 - Added assertion operators `gt` / `lt` (finite numbers only; bool/str actuals fail) and `regex` (`re.search`; restricted patterns, see D-009: max 200 chars, no backreferences, no nested/ambiguous repeats, text capped at 5,000 chars). Unsafe patterns are rejected when a case is loaded. Cases are limited to 100 assertions.
 - Added `run-all --repeat N` (per-case `stable`, top-level `unstable` list; default output unchanged). A runner result over 1,000,000 bytes is now recorded as a failed run (previously the run was lost with exit 2).
-- Added docs/THREAT_MODEL.md.
+- Added docs/THREAT_MODEL.md and docs/ADAPTER_ISOLATION.md (design proposal D-010; no adapter code exists).
 - Documentation: README now documents the case format, all operators and limits, every CLI command with exit codes. Added `examples/` (three sample cases and `run_example.sh`, a runnable offline walk-through); tests keep the examples valid.
 - Added `scripts/fuzz_regex_safety.py` (manual ReDoS fuzz/timing tool, not part of CI).

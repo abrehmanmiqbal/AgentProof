@@ -1,31 +1,26 @@
 # Handoff — Read This First
 
-## State
-Session 4 added assertion operators `gt`/`lt`/`regex` (D-009) and a 100-assertion cap (130 tests passing, ruff clean, Python 3.12.3). **CI was observed passing** on 161104d for 3.11 and 3.12 (session 4). Check the Actions tab for the newest commit first.
-
-## Step 0 (session 2 delivery, now done): land the work
-From a machine with write access:
-```bash
-git clone https://github.com/abrehmanmiqbal/AgentProof && cd AgentProof
-git fetch /path/to/agentproof-session2.bundle HEAD && git merge --ff-only FETCH_HEAD
-# or: git am /path/to/patches/*.patch
-git push origin main
-```
-Then watch the GitHub Actions run (3.11 + 3.12; now includes `ruff check .`) and record the result in TEST_EVIDENCE.md. If CI fails on 3.11, fix that first.
+## State (end of session 4, 2026-10-18)
+`main` contains: assertion operators `gt`/`lt`/`regex` (D-009), 100-assertion cap, README CLI docs, `examples/`, `run-all --repeat`, oversized-output fix, `docs/THREAT_MODEL.md`, `docs/ADAPTER_ISOLATION.md` (design only). 142 tests passing, `ruff check .` clean, Python 3.12.3 locally. **CI on GitHub was observed passing on 3.11 and 3.12 for 161104d**; check the Actions tab / API for the newest commit first (CI for the session-4 commits was checked at the end of the session, see TEST_EVIDENCE.md).
 
 ## Rules
 1. Read AGENTS.md and docs/ first; verify the repo rather than trusting notes.
 2. `python -m pip install -e ".[dev]" && ruff check . && pytest && agentproof demo` before and after changes.
-3. Test-first for bugs; record exact commands/results; never fabricate evidence.
-4. Traces/cases are untrusted data. Do NOT add any adapter that executes commands/code without first designing isolation (timeouts, resource limits, no shell, allow-listed executable) and writing it in DECISIONS.md.
-5. Do not publish, spend money, or commit secrets.
+3. Test-first; record exact commands/results; never fabricate evidence; say what is NOT verified.
+4. Traces/cases are untrusted data. **Do NOT write any adapter that executes commands/code or makes network calls until the owner has accepted D-010 (docs/ADAPTER_ISOLATION.md) and answered its four open questions.**
+5. Do not publish, spend money, choose a LICENSE, or commit secrets. Push tokens are used inline in one `git push` command only (never saved or printed).
 
 ## Known issues / design notes
-- Dot-path syntax cannot address keys that themselves contain "." (no escaping yet).
-- `contains` semantics follow Python `in` (substring for str, membership for list, key for dict).
-- Run history stores full result JSON; no retention/pruning.
+- Dot-path syntax cannot address keys that contain "." (no escaping yet).
+- `contains` follows Python `in` (substring / membership / dict key).
+- Run history stores full result JSON; no retention/pruning. No secret redaction (THREAT_MODEL #8).
 - `local-legacy` runner is a deliberate demo "bug", not a real agent.
-- No LICENSE file: owner must choose one.
+- Regex validation is an estimate-based mitigation, not a proof (D-009); it uses private `re._parser` (fails closed).
+- Piping CLI output into `head` prints a `BrokenPipeError` traceback (cosmetic, unfixed).
+- Python 3.11 is verified only through GitHub CI, not locally.
+- **No LICENSE file: waiting for the owner to choose one.**
 
-## Next concrete task (see the end of the file for the session-4 update)
-Reports are done (`report.py`, `agentproof report`). `case delete --yes` and `run-all` are done. `report --output` and `run --repeat N` are done too. Next: more assertion operators (numeric `gt/lt`, `regex` with length limit; mind ReDoS), CLI docs in README + `examples/`, then adapter-isolation design (D-008). `--repeat` for `run-all` is a possible small follow-up.
+## Next concrete tasks (in order)
+1. **Owner decisions needed:** (a) which LICENSE (MIT / Apache-2.0 / other) — then add the file; (b) review docs/ADAPTER_ISOLATION.md and answer its 4 questions, then mark D-010 Accepted.
+2. Without waiting on the owner: DB migration v2 with run-metadata columns (design step 1 in ADAPTER_ISOLATION.md §8) — also gives the first real v1 -> v2 migration test; or secret-redaction of stored outputs (THREAT_MODEL #8); or CONTRIBUTING.md.
+3. After D-010 is accepted: `agentproof.toml` loader, hostile test agent, Tier A subprocess adapter (test-first, Linux only).

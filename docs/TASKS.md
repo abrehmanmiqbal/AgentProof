@@ -44,7 +44,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Case files: size cap (1,000,000 bytes), JSON-only parse, typed validation, `extra=forbid`; hostile/malformed/deep-nesting/invalid-UTF-8 probes rejected cleanly.
 - [x] Regex safety (ReDoS): validation at case load, text cap, cost model, fuzzed (D-009). Assertion count capped at 100.
 - [ ] Redact secrets in stored outputs; limit assertion depth/path length.
-- [ ] Isolation design for real-agent adapters (subprocess sandboxing, timeouts, resource limits) — required BEFORE any adapter that runs user code/commands.
+- [x] Isolation design written: docs/ADAPTER_ISOLATION.md + D-010 (status PROPOSED; design only, nothing implemented/tested). [ ] Owner review/acceptance of D-010 required before any adapter code.
 - [x] Threat model doc: docs/THREAT_MODEL.md (honest status per threat; secrets redaction still NOT mitigated).
 
 ## Milestone 6 — Release preparation
