@@ -3,6 +3,7 @@
 User-visible changes are recorded here. This project has not had a software release yet.
 
 ## Unreleased
+- Added: `agentproof.toml` loader (`agentproof.config`, parse and validate only; nothing executes yet). Strict keys, argv lists with absolute executables, mandatory `acknowledge_not_sandboxed = true`, hard limit maxima, env allow-list of names, symlink/permission/size checks. Not wired into the CLI yet.
 - Added: best-effort secret redaction of everything stored in run history (outputs, errors, assertion values, adapter metadata); the CLI now prints the stored (redacted) result. Not a guarantee, see docs/THREAT_MODEL.md #8.
 - Added: DB schema v2 (nullable run-metadata columns for future adapters), atomic migrations.
 - Added AGENTS.md with operating rules, security guardrails, memory-file requirements, and truthful completion reporting.
