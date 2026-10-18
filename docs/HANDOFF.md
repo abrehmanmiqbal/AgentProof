@@ -1,9 +1,9 @@
 # Handoff — Read This First
 
 ## State
-Session 2 produced verified local work (44 tests passing, ruff clean, Python 3.12.3). **None of it is on GitHub** because the environment had no push credentials. GitHub `main` is still at d5b6852.
+Session 2 work was pushed to GitHub `main` in session 3 (d5b6852 -> e9e4ac4). Session 3 added the `report` command (55 tests passing, ruff clean, Python 3.12.3). **CI on GitHub has still not been observed** (GitHub API was rate-limited when checked) — look at the Actions tab first.
 
-## Step 0: land the work
+## Step 0 (session 2 delivery, now done): land the work
 From a machine with write access:
 ```bash
 git clone https://github.com/abrehmanmiqbal/AgentProof && cd AgentProof
@@ -28,4 +28,4 @@ Then watch the GitHub Actions run (3.11 + 3.12; now includes `ruff check .`) and
 - No LICENSE file: owner must choose one.
 
 ## Next concrete task
-Implement reports: `agentproof report <before_run_id> <after_run_id> [--format markdown|json]` producing a deterministic (timestamp-free body) Markdown report from `Comparison`; add `src/agentproof/report.py` + tests (golden-file for determinism), then `case delete` and a `run-all` command. After that: repeat-run flakiness (`--repeat N`), more assertion operators (numeric `gt/lt`, `regex` with length limit), then adapter-isolation design (D-008).
+Reports are done (`report.py`, `agentproof report`). Next: `case delete` and a `run-all` command, `--output` for reports. After that: repeat-run flakiness (`--repeat N`), more assertion operators (numeric `gt/lt`, `regex` with length limit), then adapter-isolation design (D-008).

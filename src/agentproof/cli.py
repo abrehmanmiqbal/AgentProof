@@ -17,6 +17,7 @@ from pydantic import ValidationError
 from .comparison import Verdict, compare_runs
 from .models import AssertionOperator, AssertionSpec, RegressionCase
 from .regression import RegressionEngine
+from .report import render_json, render_markdown
 from .runner import RUNNERS, DeterministicLocalRunner
 from .storage import MAX_JSON_BYTES, Repository, StorageError
 
@@ -91,6 +92,13 @@ def _build_parser() -> argparse.ArgumentParser:
     cmp = sub.add_parser("compare", help="Compare two recorded runs (exit 1 if regressed).")
     cmp.add_argument("before_run_id", type=int)
     cmp.add_argument("after_run_id", type=int)
+
+    rep = sub.add_parser(
+        "report", help="Render a deterministic report comparing two runs (exit 1 if regressed)."
+    )
+    rep.add_argument("before_run_id", type=int)
+    rep.add_argument("after_run_id", type=int)
+    rep.add_argument("--format", choices=["markdown", "json"], default="markdown")
     return parser
 
 
@@ -134,6 +142,12 @@ def _dispatch(args: argparse.Namespace) -> int:
         if args.command == "compare":
             comparison = compare_runs(repo.get_run(args.before_run_id), repo.get_run(args.after_run_id))
             _emit(comparison.model_dump(mode="json"))
+            return 1 if comparison.verdict == Verdict.REGRESSED else 0
+
+        if args.command == "report":
+            comparison = compare_runs(repo.get_run(args.before_run_id), repo.get_run(args.after_run_id))
+            render = render_json if args.format == "json" else render_markdown
+            print(render(comparison), end="")
             return 1 if comparison.verdict == Verdict.REGRESSED else 0
 
     return 2

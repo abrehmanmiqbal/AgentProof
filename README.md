@@ -33,9 +33,10 @@ agentproof case add case.json
 agentproof run greet-ava --label before --runner local-legacy   # fails (exit 1)
 agentproof run greet-ava --label after  --runner local          # passes
 agentproof compare 1 2                                          # verdict: improved
+agentproof report 1 2                                           # deterministic Markdown report (--format json also)
 ```
 
-Data is stored in `./agentproof.db` (override with `--db` or `AGENTPROOF_DB`). `compare` exits 1 if the verdict is `regressed`.
+Data is stored in `./agentproof.db` (override with `--db` or `AGENTPROOF_DB`). `compare` and `report` exit 1 if the verdict is `regressed`.
 
 ## First vertical slice
 

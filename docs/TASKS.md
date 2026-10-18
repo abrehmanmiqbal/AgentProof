@@ -18,13 +18,15 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Rerun + assertion-based before/after comparison.
 - [x] Tests: persistence across connections, hash stability, history immutability, size limits, injection-like ids, corrupt/newer DB.
 - [ ] Persist raw traces (no trace model yet).
-- [ ] Reports: stored/exported reproducible report (Markdown + JSON).
+- [x] Reports: `report` command renders a deterministic, timestamp-free Markdown/JSON report from two runs to stdout (golden-file + injection tests).
+- [ ] Write reports to a file / persist them (`--output`).
 - [ ] Migration test with a real v1 -> v2 upgrade once a v2 exists.
 - [ ] Flakiness/repeat-run support (run N times, report stability).
 
 ## Milestone 3 — API and CLI
 - [x] CLI: case add/list/show, run, runs, compare (+ exit codes) with tests.
-- [ ] CLI: case delete, `report` command, `--format markdown`, run-all/suite command.
+- [x] CLI: `report <before> <after> [--format markdown|json]` (exit 1 if regressed).
+- [ ] CLI: case delete, run-all/suite command.
 - [ ] Validated HTTP API (local-only bind by default) + integration tests.
 - [ ] Docs for CLI/API usage (README only has install/test right now).
 

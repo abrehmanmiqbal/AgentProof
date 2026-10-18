@@ -21,5 +21,12 @@ Only commands actually executed are listed. Environment: Linux container, Python
 11. `git push origin HEAD:main` — **FAILED: no credentials** (`could not read Username for 'https://github.com'`).
 12. Delivery check: bundle of d5b6852..d5eff4f fast-forward-merged onto a fresh clone of GitHub `main`; there `ruff check .` passed, `pytest` **44 passed in 0.31s**, `agentproof demo` exit 0. README "Try the full loop" snippet run as written: add=0, run-before=1, run-after=0, compare verdict `improved`. (A final docs-only commit, this note, was added after that check.)
 
+## 2026-10-17 (session 3)
+1. `git bundle list-heads`: bundle was incremental (needs d5b6852); fetched onto fresh clone of GitHub `main`, `git merge --ff-only` OK (7 commits, d5b6852..e9e4ac4). `pytest` **44 passed**, `ruff check .` clean.
+2. `git push` with first token — **403** (no write permission); second token — **rejected**: workflow-file change needs `workflow` scope; after the token was fixed — **pushed d5b6852..e9e4ac4**; `git ls-remote origin main` = e9e4ac4 = local HEAD.
+3. GitHub Actions status via API: **not obtained** (anonymous API rate limit exceeded).
+4. `report` command, test-first: wrote tests/test_report.py + hand-written golden file; first run failed at collection (module missing). After implementing `report.py` + CLI: `pytest` **55 passed in 0.27s**, `ruff check .` clean.
+5. Black-box: `case add` / `run --runner local-legacy` (exit 1) / `run --runner local` (exit 0) / `report 1 2` exit 0, output matched the golden shape; two consecutive `report 1 2` outputs were byte-identical (`cmp`).
+
 ## Not verified
 Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.
