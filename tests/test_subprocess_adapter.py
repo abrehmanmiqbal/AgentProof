@@ -9,6 +9,7 @@ import json
 import os
 import re
 import socket
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -20,12 +21,31 @@ from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase
 from agentproof.regression import RegressionEngine
 from agentproof.subprocess_adapter import AdapterError, SubprocessAdapter
 
-pytestmark = pytest.mark.skipif(
-    not sys.platform.startswith("linux"), reason="Tier A adapters are Linux only"
-)
+
+def _pick_agent_python() -> str | None:
+    """An interpreter that starts with an EMPTY environment. A Python built with a shared
+    libpython (e.g. GitHub's setup-python) needs LD_LIBRARY_PATH to start at all, so it cannot
+    play the hostile agent here; a system Python usually can."""
+    for candidate in (sys.executable, "/usr/bin/python3"):
+        real = os.path.realpath(candidate)
+        try:
+            done = subprocess.run(
+                [real, "-c", "pass"], check=False, env={}, capture_output=True, timeout=20
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if done.returncode == 0:
+            return real
+    return None
+
 
 AGENT = str(Path(__file__).with_name("hostile_agent.py"))
-PYTHON = os.path.realpath(sys.executable)
+PYTHON = _pick_agent_python() or ""
+
+pytestmark = [
+    pytest.mark.skipif(not sys.platform.startswith("linux"), reason="Tier A adapters are Linux only"),
+    pytest.mark.skipif(not PYTHON, reason="no interpreter that starts with an empty environment"),
+]
 
 
 def make(tmp_path=None, *, extra_argv=(), environ=None, **overrides) -> SubprocessAdapter:
@@ -134,6 +154,36 @@ def test_real_process_environment_is_not_inherited(monkeypatch):
     )  # default environ = os.environ
     out = adapter.run({"mode": "print_env"})
     assert "must-not-leak" not in json.dumps(out)
+
+
+def test_launcher_gets_the_loader_path_but_the_child_does_not(monkeypatch):
+    """A shared-libpython interpreter (setup-python, pyenv) cannot even start the launcher
+    without LD_LIBRARY_PATH; the agent itself must still get a clean environment."""
+    monkeypatch.setenv("LD_LIBRARY_PATH", "/opt/some/lib")
+    seen: list[dict] = []
+    real_popen = subprocess.Popen
+
+    def spy(*args, **kwargs):
+        seen.append(dict(kwargs["env"]))
+        return real_popen(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", spy)
+    env = SubprocessAdapter(
+        AdapterConfig(name="h", tier="A", argv=(PYTHON, AGENT), timeout_seconds=5)
+    ).run({"mode": "print_env"})["env"]
+    assert seen[0]["LD_LIBRARY_PATH"] == "/opt/some/lib"  # launcher stage only
+    assert "LD_LIBRARY_PATH" not in env  # not leaked to the agent
+
+
+def test_loader_path_reaches_the_child_only_when_explicitly_allowed(monkeypatch):
+    monkeypatch.setenv("LD_LIBRARY_PATH", "/opt/some/lib")
+    adapter = SubprocessAdapter(
+        AdapterConfig(
+            name="h", tier="A", argv=(PYTHON, AGENT), timeout_seconds=5,
+            env_allow=("LD_LIBRARY_PATH",),
+        )
+    )
+    assert adapter.run({"mode": "print_env"})["env"]["LD_LIBRARY_PATH"] == "/opt/some/lib"
 
 
 def test_path_is_fixed_and_not_taken_from_the_parent():

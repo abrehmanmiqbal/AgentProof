@@ -62,16 +62,21 @@ SNIPPET_BYTES = 200
 _CHUNK = 65536
 
 # Runs in the child (python -I -S): apply limits, then exec. Any problem exits 125 with a marker.
+# argv: limits-json, names-to-drop-json, executable, argv...  The names to drop are variables that
+# only the launcher itself needed (LD_LIBRARY_PATH for a shared-libpython interpreter); values
+# never appear on a command line.
 _LAUNCHER = r"""
 import json, os, resource, sys
 try:
+    for name in json.loads(sys.argv[2]):
+        os.environ.pop(name, None)
     for name, value in json.loads(sys.argv[1]).items():
         which = getattr(resource, name)
         hard = resource.getrlimit(which)[1]
         if hard != resource.RLIM_INFINITY:
             value = min(value, hard)
         resource.setrlimit(which, (value, value))
-    os.execve(sys.argv[2], sys.argv[3:], dict(os.environ))
+    os.execve(sys.argv[3], sys.argv[4:], dict(os.environ))
 except BaseException:
     try:
         os.write(2, b"AGENTPROOF_LAUNCHER_FAILED\n")
@@ -148,17 +153,26 @@ class SubprocessAdapter:
             if name in self._environ:
                 env[name] = self._environ[name]
 
+        # The launcher is OUR interpreter: it may need the loader path to start (setup-python and
+        # pyenv builds use a shared libpython). The agent never gets it unless allow-listed.
+        launcher_env = dict(env)
+        launcher_only: list[str] = []
+        loader_path = os.environ.get("LD_LIBRARY_PATH")
+        if loader_path is not None and "LD_LIBRARY_PATH" not in env:
+            launcher_env["LD_LIBRARY_PATH"] = loader_path
+            launcher_only.append("LD_LIBRARY_PATH")
+
         workdir = tempfile.mkdtemp(prefix="agentproof-")
         try:
             args = [
                 sys.executable, "-I", "-S", "-c", _LAUNCHER,
-                json.dumps(limits), executable, *cfg.argv,
+                json.dumps(limits), json.dumps(launcher_only), executable, *cfg.argv,
             ]
             started = time.monotonic()
             try:
                 proc = subprocess.Popen(
                     args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    cwd=workdir, env=env, close_fds=True, start_new_session=True,
+                    cwd=workdir, env=launcher_env, close_fds=True, start_new_session=True,
                     shell=False, bufsize=0,
                 )
             except OSError as exc:

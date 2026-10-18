@@ -13,7 +13,7 @@ Safety properties:
   normalised executable path;
 - every adapter entry must carry ``acknowledge_not_sandboxed = true`` (Tier A is NOT a sandbox);
 - limits cannot exceed hard maxima; environment allow-list holds plain *names* only, and names
-  that change how programs load code (``LD_*``, ``PYTHON*``, ``PATH`` ...) are refused;
+  that change how programs load code (``LD_*`` except an explicit ``LD_LIBRARY_PATH``, ``PYTHON*``, ``PATH`` ...) are refused;
 - error messages never echo argv values (they may contain secrets).
 """
 from __future__ import annotations
@@ -247,7 +247,9 @@ def _parse_env_allow(name: str, value: Any) -> tuple[str, ...]:
         if not isinstance(item, str) or not _ENV_NAME.fullmatch(item):
             raise ConfigError(f"adapter {name}: env_allow entries must be plain variable names")
         upper = item.upper()
-        if upper in _FORBIDDEN_ENV_NAMES or upper.startswith(_FORBIDDEN_ENV_PREFIXES):
+        if upper != "LD_LIBRARY_PATH" and (
+            upper in _FORBIDDEN_ENV_NAMES or upper.startswith(_FORBIDDEN_ENV_PREFIXES)
+        ):
             raise ConfigError(
                 f"adapter {name}: env_allow may not include {item!r} (it changes how programs "
                 "find or load code)"

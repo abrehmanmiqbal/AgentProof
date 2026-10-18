@@ -187,7 +187,7 @@ def test_limits_can_be_overridden_within_bounds(tmp_path):
 @pytest.mark.parametrize(
     "value",
     ['["FOO=bar"]', '["a b"]', '[""]', '["1X"]', '["A\\u0000"]', '"FOO"', "[1]", '["PATH"]',
-     '["LD_PRELOAD"]', '["LD_LIBRARY_PATH"]', '["PYTHONPATH"]', '["PYTHONSTARTUP"]'],
+     '["LD_PRELOAD"]', '["LD_AUDIT"]', '["PYTHONPATH"]', '["PYTHONSTARTUP"]'],
 )
 def test_env_allow_must_be_plain_safe_names(tmp_path, value):
     with pytest.raises(ConfigError):
@@ -199,6 +199,12 @@ def test_env_allow_accepts_names_and_deduplicates_refusal(tmp_path):
     assert adapter.adapters["a"].env_allow == ("HOME_DIR", "MY_AGENT_MODE")
     with pytest.raises(ConfigError, match="duplicate"):
         load_config(write(tmp_path, adapter_toml(env_allow='["A", "A"]')))
+
+
+def test_ld_library_path_may_be_allowed_explicitly(tmp_path):
+    # Needed by interpreters built with a shared libpython; LD_PRELOAD and friends stay refused.
+    adapter = load_config(write(tmp_path, adapter_toml(env_allow='["LD_LIBRARY_PATH"]')))
+    assert adapter.adapters["a"].env_allow == ("LD_LIBRARY_PATH",)
 
 
 def test_sha256_pin_must_be_lowercase_hex(tmp_path):
