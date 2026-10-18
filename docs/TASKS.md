@@ -21,7 +21,9 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Reports: `report` command renders a deterministic, timestamp-free Markdown/JSON report from two runs to stdout (golden-file + injection tests).
 - [x] `report --output PATH [--force]` writes the report to a file (refuses to overwrite without `--force`).
 - [ ] Migration test with a real v1 -> v2 upgrade once a v2 exists.
-- [x] `run --repeat N` (1-20): records N runs, reports pass/fail counts and `stable` (same per-assertion outcomes every time). Not yet available for `run-all`.
+- [x] `run --repeat N` (1-20): records N runs, reports pass/fail counts and `stable` (same per-assertion outcomes every time).
+- [x] `run-all --repeat N` (per-case summary + `unstable` list).
+- [x] Oversized runner output (> 1,000,000 bytes) is recorded as a failed run instead of aborting (session 4).
 
 ## Milestone 1b — Assertion operators
 - [x] `gt`, `lt` (numeric), `regex` (restricted, length-limited; D-009) with 61 tests incl. CLI integration, mutation checks and fuzzing.
@@ -43,7 +45,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Regex safety (ReDoS): validation at case load, text cap, cost model, fuzzed (D-009). Assertion count capped at 100.
 - [ ] Redact secrets in stored outputs; limit assertion depth/path length.
 - [ ] Isolation design for real-agent adapters (subprocess sandboxing, timeouts, resource limits) — required BEFORE any adapter that runs user code/commands.
-- [ ] Threat model doc.
+- [x] Threat model doc: docs/THREAT_MODEL.md (honest status per threat; secrets redaction still NOT mitigated).
 
 ## Milestone 6 — Release preparation
 - [x] Ruff added to dev extras and CI (verified locally only).

@@ -88,7 +88,7 @@ agentproof [--db FILE] <command> ...
 | `case show CASE_ID` | Prints the saved case. |
 | `case delete CASE_ID --yes` | Deletes the case **and all its runs**. Refuses (exit 2) without `--yes`. |
 | `run CASE_ID --label L [--runner R] [--repeat N]` | Runs the case and records it. Prints `run_id`, `passed`, `error`. With `--repeat N` (1-20) it records N runs and prints `run_ids`, `total`, `passed`, `failed`, and `stable` (true when every repeat had identical per-assertion outcomes). Exit 1 if any run failed. |
-| `run-all --label L [--runner R]` | Runs and records every saved case. Exit 1 if any fail; exit 2 if there are no cases. No `--repeat` yet. |
+| `run-all --label L [--runner R] [--repeat N]` | Runs and records every saved case. Exit 1 if any fail; exit 2 if there are no cases. With `--repeat N` (1-20) each case runs N times; each result gets `run_ids`, `total`, `passed`, `failed`, `stable`, and the top level adds `unstable` (case ids whose repeats differed). Top-level `passed`/`failed` count cases (a case passes only if every repeat passed). |
 | `runs CASE_ID` | Lists recorded runs (id, label, runner, passed, timestamp). |
 | `compare BEFORE_ID AFTER_ID` | Assertion-level diff of two runs with a verdict: `improved`, `regressed`, or `unchanged`. Exit 1 if `regressed`. |
 | `report BEFORE_ID AFTER_ID [--format markdown\|json] [--output FILE] [--force]` | Deterministic, timestamp-free report (Markdown by default) on stdout. `--output` writes a file instead and refuses to overwrite one without `--force`. Exit 1 if `regressed`. |
@@ -103,11 +103,11 @@ Runners (`--runner`): `local` (default; deterministic offline demo agent) and `l
 | 1 | a run failed, or the verdict was `regressed` |
 | 2 | usage or input error (invalid case file, unknown case/run, refused overwrite or delete, corrupt database) |
 
-Recorded runs are immutable and store the SHA-256 of the exact case definition, so `compare` can tell you whether both runs used the same case.
+A runner result larger than 1,000,000 bytes is not lost: it is recorded as a failed run with an explanatory `error`. Recorded runs are immutable and store the SHA-256 of the exact case definition, so `compare` can tell you whether both runs used the same case.
 
 ## Security principles
 
-Recorded inputs, traces, and case files are data, not code. AgentProof must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. There is no LICENSE file yet; the owner has not chosen one.
+Recorded inputs, traces, and case files are data, not code. AgentProof must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for what is and is not mitigated (notably: stored outputs are not redacted). There is no LICENSE file yet; the owner has not chosen one.
 
 ## Development
 

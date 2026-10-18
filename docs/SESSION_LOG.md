@@ -15,3 +15,4 @@
 - Step 0: CI on 161104d observed green (3.11 + 3.12) via GitHub API.
 - Added `gt`/`lt`/`regex` operators with ReDoS guards (D-009), 100-assertion cap, fuzz script; tests 69 -> 130.
 - README CLI documentation + `examples/` (3 cases, runnable script, tests); tests 130 -> 137.
+- `run-all --repeat`; oversized-output fix; docs/THREAT_MODEL.md; tests 137 -> 142.

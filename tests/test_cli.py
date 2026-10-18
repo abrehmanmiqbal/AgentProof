@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from agentproof.cli import main
 
 CASE = {
@@ -264,3 +266,88 @@ def test_run_repeat_out_of_range_is_rejected(tmp_path, capsys):
     capsys.readouterr()
     cli(tmp_path, "runs", "greet-ava")
     assert json.loads(capsys.readouterr().out) == []  # nothing was recorded
+
+
+# ---------------------------------------------------------------- run-all --repeat
+def _two_greet_cases(tmp_path):
+    other = {**CASE, "case_id": "greet-bob", "input": {"action": "greet", "name": "Bob"}}
+    other["assertions"] = [{"path": "message", "operator": "equals", "expected": "Hello, Bob!"}]
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    cli(tmp_path, "case", "add", write_case(tmp_path, other, name="b.json"))
+
+
+def test_run_all_default_output_shape_is_unchanged(tmp_path, capsys):
+    _two_greet_cases(tmp_path)
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "v") == 0
+    out = json.loads(capsys.readouterr().out)
+    assert set(out) == {"total", "passed", "failed", "results"}
+    assert set(out["results"][0]) == {"case_id", "run_id", "passed", "error"}
+
+
+def test_run_all_repeat_records_n_runs_per_case(tmp_path, capsys):
+    _two_greet_cases(tmp_path)
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "v", "--repeat", "3") == 0
+    out = json.loads(capsys.readouterr().out)
+    assert (out["total"], out["passed"], out["failed"]) == (2, 2, 0)
+    assert out["unstable"] == []
+    for entry in out["results"]:
+        assert len(entry["run_ids"]) == 3
+        assert (entry["total"], entry["passed"], entry["failed"]) == (3, 3, 0)
+        assert entry["stable"] is True
+    cli(tmp_path, "runs", "greet-ava")
+    assert len(json.loads(capsys.readouterr().out)) == 3
+
+
+def test_run_all_repeat_flags_unstable_case_and_exits_1(tmp_path, capsys, monkeypatch):
+    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+
+    class Flaky(DeterministicLocalRunner):
+        calls = 0
+
+        def run(self, input_data):
+            Flaky.calls += 1
+            out = super().run(input_data)
+            return {**out, "message": "Hi!"} if Flaky.calls % 3 == 0 else out
+
+    monkeypatch.setitem(RUNNERS, "flaky", Flaky)
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "f", "--runner", "flaky", "--repeat", "3") == 1
+    out = json.loads(capsys.readouterr().out)
+    assert (out["total"], out["passed"], out["failed"]) == (1, 0, 1)
+    assert out["unstable"] == ["greet-ava"]
+    entry = out["results"][0]
+    assert (entry["passed"], entry["failed"], entry["stable"]) == (2, 1, False)
+
+
+def test_run_all_repeat_out_of_range_is_rejected_and_records_nothing(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    for bad in ("0", "21", "abc"):
+        with pytest.raises(SystemExit) as exc:
+            cli(tmp_path, "run-all", "--label", "r", "--repeat", bad)
+        assert exc.value.code == 2
+    capsys.readouterr()
+    cli(tmp_path, "runs", "greet-ava")
+    assert json.loads(capsys.readouterr().out) == []
+
+
+# ---------------------------------------------------------------- oversized runner output
+def test_oversized_runner_output_is_recorded_as_failed_run(tmp_path, capsys, monkeypatch):
+    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+
+    class Huge(DeterministicLocalRunner):
+        def run(self, input_data):
+            return {"message": "x" * 2_000_000, "action": "greet"}
+
+    monkeypatch.setitem(RUNNERS, "huge", Huge)
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    capsys.readouterr()
+    assert cli(tmp_path, "run", "greet-ava", "--label", "h", "--runner", "huge") == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["passed"] is False
+    assert "exceeds" in out["error"]
+    cli(tmp_path, "runs", "greet-ava")
+    runs = json.loads(capsys.readouterr().out)
+    assert len(runs) == 1 and runs[0]["passed"] is False  # recorded, not lost

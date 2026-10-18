@@ -15,11 +15,11 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from .comparison import Verdict, compare_runs
-from .models import AssertionOperator, AssertionSpec, RegressionCase
+from .models import AssertionOperator, AssertionSpec, RegressionCase, RegressionResult
 from .regression import RegressionEngine
 from .report import render_json, render_markdown
 from .runner import RUNNERS, DeterministicLocalRunner
-from .storage import MAX_JSON_BYTES, Repository, StorageError
+from .storage import MAX_JSON_BYTES, PayloadTooLargeError, Repository, StorageError
 
 DEFAULT_DB = "agentproof.db"
 MAX_REPEAT = 20
@@ -84,6 +84,36 @@ def _outcome_signature(result) -> tuple:
     )
 
 
+def _run_repeated(repo: Repository, case: RegressionCase, runner_name: str, label: str, repeat: int):
+    """Run ``case`` ``repeat`` times, recording every run. Returns (results, run_ids)."""
+    results, run_ids = [], []
+    for _ in range(repeat):
+        result = RegressionEngine(RUNNERS[runner_name]()).run_case(case)
+        try:
+            run_ids.append(repo.record_run(case, result, label=label, runner_name=runner_name))
+        except PayloadTooLargeError:
+            # Runner output is untrusted: an oversized result is a failed run, not a lost one.
+            result = RegressionResult(
+                case_id=case.case_id,
+                passed=False,
+                error=f"Result exceeds {MAX_JSON_BYTES} bytes; output was not stored",
+            )
+            run_ids.append(repo.record_run(case, result, label=label, runner_name=runner_name))
+        results.append(result)
+    return results, run_ids
+
+
+def _repeat_summary(results, run_ids) -> dict:
+    passed = sum(1 for r in results if r.passed)
+    return {
+        "run_ids": run_ids,
+        "total": len(results),
+        "passed": passed,
+        "failed": len(results) - passed,
+        "stable": len({_outcome_signature(r) for r in results}) == 1,
+    }
+
+
 def _write_report(path: str, text: str, *, force: bool) -> None:
     try:
         with open(path, "w" if force else "x", encoding="utf-8") as handle:
@@ -130,6 +160,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     run_all.add_argument("--label", required=True)
     run_all.add_argument("--runner", choices=sorted(RUNNERS), default="local")
+    run_all.add_argument(
+        "--repeat",
+        type=_repeat_count,
+        default=1,
+        help=f"Run each case N times (1-{MAX_REPEAT}) and report stability per case.",
+    )
 
     runs = sub.add_parser("runs", help="List recorded runs for a case.")
     runs.add_argument("case_id")
@@ -176,51 +212,48 @@ def _dispatch(args: argparse.Namespace) -> int:
 
         if args.command == "run":
             case = repo.get_case(args.case_id)
-            results, run_ids = [], []
-            for _ in range(args.repeat):
-                result = RegressionEngine(RUNNERS[args.runner]()).run_case(case)
-                run_ids.append(
-                    repo.record_run(case, result, label=args.label, runner_name=args.runner)
-                )
-                results.append(result)
+            results, run_ids = _run_repeated(repo, case, args.runner, args.label, args.repeat)
             all_passed = all(r.passed for r in results)
             if args.repeat == 1:
                 _emit({"run_id": run_ids[0], "passed": results[0].passed, "error": results[0].error})
             else:
-                passed = sum(1 for r in results if r.passed)
-                _emit(
-                    {
-                        "run_ids": run_ids,
-                        "total": len(results),
-                        "passed": passed,
-                        "failed": len(results) - passed,
-                        "stable": len({_outcome_signature(r) for r in results}) == 1,
-                    }
-                )
+                _emit(_repeat_summary(results, run_ids))
             return 0 if all_passed else 1
 
         if args.command == "run-all":
             case_ids = repo.list_case_ids()
             if not case_ids:
                 raise CliError("No cases saved; add one with 'case add' first")
-            results = []
+            entries, unstable, ok_cases = [], [], 0
             for case_id in case_ids:
                 case = repo.get_case(case_id)
-                result = RegressionEngine(RUNNERS[args.runner]()).run_case(case)
-                run_id = repo.record_run(case, result, label=args.label, runner_name=args.runner)
-                results.append(
-                    {"case_id": case_id, "run_id": run_id, "passed": result.passed, "error": result.error}
-                )
-            passed = sum(1 for r in results if r["passed"])
-            _emit(
-                {
-                    "total": len(results),
-                    "passed": passed,
-                    "failed": len(results) - passed,
-                    "results": results,
-                }
-            )
-            return 0 if passed == len(results) else 1
+                results, run_ids = _run_repeated(repo, case, args.runner, args.label, args.repeat)
+                case_ok = all(r.passed for r in results)
+                ok_cases += case_ok
+                if args.repeat == 1:
+                    entries.append(
+                        {
+                            "case_id": case_id,
+                            "run_id": run_ids[0],
+                            "passed": results[0].passed,
+                            "error": results[0].error,
+                        }
+                    )
+                else:
+                    summary = _repeat_summary(results, run_ids)
+                    if not summary["stable"]:
+                        unstable.append(case_id)
+                    entries.append({"case_id": case_id, **summary})
+            output = {
+                "total": len(entries),
+                "passed": ok_cases,
+                "failed": len(entries) - ok_cases,
+                "results": entries,
+            }
+            if args.repeat > 1:
+                output["unstable"] = unstable
+            _emit(output)
+            return 0 if ok_cases == len(entries) else 1
 
         if args.command == "runs":
             _emit(
