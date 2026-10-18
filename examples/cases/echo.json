@@ -1,0 +1,10 @@
+{
+  "case_id": "echo-tag",
+  "name": "Agent echoes its input",
+  "input": {"action": "echo", "tag": "x"},
+  "assertions": [
+    {"path": "echo.tag", "operator": "equals", "expected": "x"},
+    {"path": "echo", "operator": "contains", "expected": "tag"},
+    {"path": "action", "operator": "not_equals", "expected": "greet"}
+  ]
+}

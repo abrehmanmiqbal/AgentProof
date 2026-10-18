@@ -1,0 +1,10 @@
+{
+  "case_id": "greet-ava",
+  "name": "Agent greets a user by name",
+  "input": {"action": "greet", "name": "Ava"},
+  "assertions": [
+    {"path": "message", "operator": "equals", "expected": "Hello, Ava!"},
+    {"path": "message", "operator": "regex", "expected": "^Hello, \\w+!$"},
+    {"path": "action", "operator": "equals", "expected": "greet"}
+  ]
+}

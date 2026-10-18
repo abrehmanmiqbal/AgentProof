@@ -1,0 +1,11 @@
+{
+  "case_id": "classify-text",
+  "name": "Agent classifies non-empty text",
+  "input": {"action": "classify", "text": "refund my order"},
+  "assertions": [
+    {"path": "category", "operator": "equals", "expected": "contains_text"},
+    {"path": "length", "operator": "gt", "expected": 0},
+    {"path": "length", "operator": "lt", "expected": 100},
+    {"path": "action", "operator": "exists"}
+  ]
+}

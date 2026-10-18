@@ -32,7 +32,8 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] CLI: `report <before> <after> [--format markdown|json]` (exit 1 if regressed).
 - [x] CLI: `case delete <id> --yes` (refuses without --yes; reports runs deleted) and `run-all --label L [--runner R]` (exit 1 if any fail, exit 2 if no cases).
 - [ ] Validated HTTP API (local-only bind by default) + integration tests.
-- [ ] Docs for CLI/API usage (README only has install/test right now).
+- [x] README documents every CLI command, case-file format, operators, limits and exit codes (snippets executed; see TEST_EVIDENCE.md).
+- [ ] Docs for the HTTP API (API not built).
 
 ## Milestone 4 — Usable interface
 - [ ] Minimal local UI (cases, runs, diffs, reports); empty/error/loading states.
@@ -46,7 +47,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 
 ## Milestone 6 — Release preparation
 - [x] Ruff added to dev extras and CI (verified locally only).
-- [ ] LICENSE (needs owner's choice), CONTRIBUTING, examples/ dir with sample case JSON, README CLI docs.
+- [ ] LICENSE (needs owner's choice), CONTRIBUTING, ~~examples/ dir, README CLI docs~~ (done, session 4).
 - [ ] Clean-install verification from docs on 3.11 and 3.12.
 
 ## Milestone 7 — Distribution readiness

@@ -1,0 +1,40 @@
+"""The shipped examples/ must stay valid: they are documentation that is executed."""
+from pathlib import Path
+
+import pytest
+
+from agentproof.cli import load_case_file, main
+from agentproof.models import AssertionOperator
+from agentproof.regression import RegressionEngine
+from agentproof.runner import RUNNERS
+
+CASES_DIR = Path(__file__).resolve().parent.parent / "examples" / "cases"
+FILES = sorted(CASES_DIR.glob("*.json"))
+
+
+def test_examples_exist():
+    assert len(FILES) >= 3
+
+
+@pytest.mark.parametrize("path", FILES, ids=lambda p: p.name)
+def test_each_example_loads_and_passes_with_local_runner(path):
+    case = load_case_file(str(path))
+    result = RegressionEngine(RUNNERS["local"]()).run_case(case)
+    assert result.passed, [a.message for a in result.assertions if not a.passed]
+
+
+def test_greet_example_fails_with_legacy_runner():
+    case = load_case_file(str(CASES_DIR / "greet.json"))
+    assert RegressionEngine(RUNNERS["local-legacy"]()).run_case(case).passed is False
+
+
+def test_examples_demonstrate_every_operator():
+    used = {a.operator for f in FILES for a in load_case_file(str(f)).assertions}
+    assert used == set(AssertionOperator)
+
+
+def test_examples_work_through_the_cli(tmp_path):
+    db = str(tmp_path / "ex.db")
+    for f in FILES:
+        assert main(["--db", db, "case", "add", str(f)]) == 0
+    assert main(["--db", db, "run-all", "--label", "ex", "--runner", "local"]) == 0
