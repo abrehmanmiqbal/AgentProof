@@ -55,3 +55,9 @@ Local env: Linux, Python 3.12.3 venv. Python 3.11 not available locally.
 
 ## Not verified
 Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.
+
+## 2026-10-18 (session 6, environment blocked)
+1. `git ls-remote origin main` = 2c2affd431d8f1bc1e943056af09405206c94ccb = HEAD of a fresh anonymous clone.
+2. `ruff check .` (ruff 0.16.8, Python 3.13.16): All checks passed.
+3. `pip download pydantic`: FAILED (DNS "Name or service not known" for pypi.org). `python3 -m pytest`: no module named pytest. So the test suite, `agentproof demo` and the session-4 claims (142 tests) were NOT re-run.
+4. GitHub API (authenticated): refused by the session ("GitHub access ... not enabled"); `add_repo` push: "link your GitHub account". CI result for commits after 161104d NOT obtained; still missing from this file.

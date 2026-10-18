@@ -17,3 +17,9 @@
 - README CLI documentation + `examples/` (3 cases, runnable script, tests); tests 130 -> 137.
 - `run-all --repeat`; oversized-output fix; docs/THREAT_MODEL.md; tests 137 -> 142.
 - Adapter-isolation design (docs only) + D-010 proposed; HANDOFF rewritten. LICENSE intentionally NOT added (owner must choose).
+
+## 2026-10-18 (sessions 5 and 6: blocked by environment)
+- Session 5 changed nothing in the repo. Session 6 only added these notes.
+- Blocker 1: `pip download pydantic` fails with "Name or service not known" (pypi.org is in the proxy NO_PROXY list, so pip connects directly and DNS does not resolve; session 5 saw a proxy 403). No dependencies could be installed, so pytest and `agentproof demo` could NOT be run.
+- Blocker 2: GitHub API call with the owner token answered "GitHub access to this repository is not enabled for this session"; `add_repo` with access "push" answered "link your GitHub account". CI status and pushing are not possible. Anonymous `git clone` / `git ls-remote` work.
+- Not worked around (no mirrors, proxy and TLS settings untouched). No code written, because it could not be tested.
