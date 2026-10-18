@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import math
+import re
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .regex_safety import UnsafeRegexError, validate_pattern
 
@@ -69,3 +70,57 @@ class RegressionResult(BaseModel):
     output: dict[str, Any] = Field(default_factory=dict)
     assertions: list[AssertionResult] = Field(default_factory=list)
     error: str | None = None
+
+
+MAX_ARGV_ITEMS = 256
+MAX_ARGV_ITEM_LENGTH = 4096
+MAX_ENV_NAMES = 64
+MAX_LIMIT_ENTRIES = 32
+_ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,127}")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+
+
+class RunMetadata(BaseModel):
+    """Reproducibility facts about how an adapter produced a run (ADAPTER_ISOLATION.md s5).
+
+    Holds only *names* of environment variables, never values. Everything is bounded because
+    it is persisted and later rendered. ``argv`` comes from the trusted local config and is
+    stored as data; it is never executed from the database.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    adapter_name: str = Field(min_length=1, max_length=64)
+    adapter_tier: Literal["A", "B"]
+    executable_path: str | None = Field(default=None, max_length=MAX_ARGV_ITEM_LENGTH)
+    executable_sha256: str | None = None
+    argv: list[str] = Field(default_factory=list, max_length=MAX_ARGV_ITEMS)
+    env_names: list[str] = Field(default_factory=list, max_length=MAX_ENV_NAMES)
+    timeout_seconds: float | None = Field(default=None, gt=0, le=300)
+    limits: dict[str, int] = Field(default_factory=dict, max_length=MAX_LIMIT_ENTRIES)
+    exit_code: int | None = None
+    duration_ms: int | None = Field(default=None, ge=0)
+    stdout_truncated: bool | None = None
+    stderr_truncated: bool | None = None
+
+    @field_validator("executable_sha256")
+    @classmethod
+    def _check_sha256(cls, value: str | None) -> str | None:
+        if value is not None and not _SHA256.fullmatch(value):
+            raise ValueError("executable_sha256 must be 64 lowercase hex characters")
+        return value
+
+    @field_validator("argv")
+    @classmethod
+    def _check_argv(cls, value: list[str]) -> list[str]:
+        if any(len(item) > MAX_ARGV_ITEM_LENGTH for item in value):
+            raise ValueError(f"argv items must be at most {MAX_ARGV_ITEM_LENGTH} characters")
+        return value
+
+    @field_validator("env_names")
+    @classmethod
+    def _check_env_names(cls, value: list[str]) -> list[str]:
+        for name in value:
+            if not _ENV_NAME.fullmatch(name):
+                raise ValueError("env_names must be plain variable names (no '=' or values)")
+        return value

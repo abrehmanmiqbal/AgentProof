@@ -24,3 +24,7 @@
 - Blocker 2: GitHub API call with the owner token answered "GitHub access to this repository is not enabled for this session"; `add_repo` with access "push" answered "link your GitHub account". CI status and pushing are not possible. Anonymous `git clone` / `git ls-remote` work.
 - Not worked around (no mirrors, proxy and TLS settings untouched). No code written, because it could not be tested.
 - Session 6 (later): owner linked GitHub, repo attached, docs commit pushed (1e71429, `git ls-remote` == HEAD). Owner delegated decisions: LICENSE = MIT (D-011), D-010 accepted with answers. Added LICENSE and CONTRIBUTING.md. Still no code: pip remained blocked, so no tests could be run.
+
+## 2026-10-18 (session 7)
+- Pip works again. Step 0 done: CI green for the 8 newest runs (run level), baseline re-verified locally on Python 3.13.16: 142 tests, ruff clean, demo and example script OK.
+- Task 1: DB migration v2 with run metadata (`RunMetadata`), atomic migrations, negative-version guard, real v1 -> v2 tests with mutation checks; tests 142 -> 161.

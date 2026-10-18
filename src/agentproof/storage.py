@@ -16,9 +16,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, ValidationError
 
-from .models import RegressionCase, RegressionResult
+from .models import RegressionCase, RegressionResult, RunMetadata
 
 MAX_JSON_BYTES = 1_000_000  # per stored case or result
 MAX_LABEL_LENGTH = 64
@@ -45,6 +45,22 @@ MIGRATIONS: list[str] = [
         created_at  TEXT NOT NULL
     );
     CREATE INDEX idx_runs_case ON runs(case_id, run_id);
+    """,
+    # v2: adapter run metadata (ADAPTER_ISOLATION.md section 5). All columns are nullable:
+    # runs recorded before v2, and runs by built-in demo runners, have no adapter metadata.
+    """
+    ALTER TABLE runs ADD COLUMN adapter_name TEXT;
+    ALTER TABLE runs ADD COLUMN adapter_tier TEXT;
+    ALTER TABLE runs ADD COLUMN executable_path TEXT;
+    ALTER TABLE runs ADD COLUMN executable_sha256 TEXT;
+    ALTER TABLE runs ADD COLUMN argv_json TEXT;
+    ALTER TABLE runs ADD COLUMN env_names_json TEXT;
+    ALTER TABLE runs ADD COLUMN timeout_seconds REAL;
+    ALTER TABLE runs ADD COLUMN limits_json TEXT;
+    ALTER TABLE runs ADD COLUMN exit_code INTEGER;
+    ALTER TABLE runs ADD COLUMN duration_ms INTEGER;
+    ALTER TABLE runs ADD COLUMN stdout_truncated INTEGER CHECK (stdout_truncated IN (0, 1));
+    ALTER TABLE runs ADD COLUMN stderr_truncated INTEGER CHECK (stderr_truncated IN (0, 1));
     """,
 ]
 SCHEMA_VERSION = len(MIGRATIONS)
@@ -80,6 +96,7 @@ class StoredRun(BaseModel):
     runner_name: str
     created_at: str
     result: RegressionResult
+    metadata: RunMetadata | None = None
 
 
 def _now() -> str:
@@ -99,6 +116,50 @@ def case_hash(case: RegressionCase) -> str:
 def _check_size(text: str, what: str) -> None:
     if len(text.encode("utf-8")) > MAX_JSON_BYTES:
         raise PayloadTooLargeError(f"{what} exceeds {MAX_JSON_BYTES} bytes")
+
+
+def _metadata_to_columns(meta: RunMetadata | None) -> tuple:
+    if meta is None:
+        return (None,) * 12
+
+    def flag(value: bool | None) -> int | None:
+        return None if value is None else int(value)
+
+    return (
+        meta.adapter_name, meta.adapter_tier, meta.executable_path, meta.executable_sha256,
+        json.dumps(meta.argv, ensure_ascii=False), json.dumps(meta.env_names),
+        meta.timeout_seconds, json.dumps(meta.limits, sort_keys=True), meta.exit_code,
+        meta.duration_ms, flag(meta.stdout_truncated), flag(meta.stderr_truncated),
+    )
+
+
+def _columns_to_metadata(run_id: int, cols: tuple) -> RunMetadata | None:
+    """Rebuild metadata from a row. The database file is untrusted: validate, never assume."""
+    (name, tier, path, sha, argv, env, timeout, limits, exit_code, duration, out_trunc,
+     err_trunc) = cols
+    if name is None:
+        return None
+
+    def flag(value: int | None) -> bool | None:
+        return None if value is None else bool(value)
+
+    try:
+        return RunMetadata(
+            adapter_name=name,
+            adapter_tier=tier,
+            executable_path=path,
+            executable_sha256=sha,
+            argv=json.loads(argv) if argv is not None else [],
+            env_names=json.loads(env) if env is not None else [],
+            timeout_seconds=timeout,
+            limits=json.loads(limits) if limits is not None else {},
+            exit_code=exit_code,
+            duration_ms=duration,
+            stdout_truncated=flag(out_trunc),
+            stderr_truncated=flag(err_trunc),
+        )
+    except (ValidationError, ValueError, TypeError, RecursionError) as exc:
+        raise StorageError(f"Stored adapter metadata for run {run_id} is invalid") from exc
 
 
 class Repository:
@@ -128,15 +189,19 @@ class Repository:
 
     def _migrate(self) -> None:
         version = self.schema_version
+        if version < 0:
+            raise StorageError(f"Database has an invalid schema version ({version})")
         if version > SCHEMA_VERSION:
             raise SchemaTooNewError(
                 f"Database schema v{version} is newer than supported v{SCHEMA_VERSION}"
             )
         for target in range(version, SCHEMA_VERSION):
+            # The version bump is part of the same transaction as the DDL, so a failure (or a
+            # crash) can never leave a half-migrated file whose version number lies.
+            # ``target`` is an int we control; PRAGMA values cannot be parameterized.
+            script = f"BEGIN;{MIGRATIONS[target]}PRAGMA user_version = {target + 1};COMMIT;"
             try:
-                self._conn.executescript("BEGIN;" + MIGRATIONS[target] + "COMMIT;")
-                # user_version cannot be parameterized; target is an int we control.
-                self._conn.execute(f"PRAGMA user_version = {target + 1}")
+                self._conn.executescript(script)
             except sqlite3.Error:
                 self._conn.rollback()
                 raise
@@ -187,9 +252,18 @@ class Repository:
 
     # ---- runs --------------------------------------------------------------------
     def record_run(
-        self, case: RegressionCase, result: RegressionResult, *, label: str, runner_name: str
+        self,
+        case: RegressionCase,
+        result: RegressionResult,
+        *,
+        label: str,
+        runner_name: str,
+        metadata: RunMetadata | None = None,
     ) -> int:
-        """Persist a run of ``case``. The case must already be saved."""
+        """Persist a run of ``case``. The case must already be saved.
+
+        ``metadata`` (adapter facts, see ``RunMetadata``) is optional; demo runners have none.
+        """
         if not label or len(label) > MAX_LABEL_LENGTH:
             raise StorageError(f"label must be 1-{MAX_LABEL_LENGTH} characters")
         if result.case_id != case.case_id:
@@ -202,14 +276,20 @@ class Repository:
             raise NotFoundError(f"Case '{case.case_id}' must be saved before recording runs")
         cur = self._conn.execute(
             "INSERT INTO runs(case_id, case_hash, label, runner_name, passed, result_json,"
-            " created_at) VALUES (?,?,?,?,?,?,?)",
-            (case.case_id, case_hash(case), label, runner_name, int(result.passed), payload, _now()),
+            " created_at, adapter_name, adapter_tier, executable_path, executable_sha256,"
+            " argv_json, env_names_json, timeout_seconds, limits_json, exit_code, duration_ms,"
+            " stdout_truncated, stderr_truncated) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                case.case_id, case_hash(case), label, runner_name, int(result.passed), payload,
+                _now(), *_metadata_to_columns(metadata),
+            ),
         )
         self._conn.commit()
         return int(cur.lastrowid)
 
     @staticmethod
     def _row_to_run(row: tuple) -> StoredRun:
+        metadata = _columns_to_metadata(row[0], row[7:])
         return StoredRun(
             run_id=row[0],
             case_id=row[1],
@@ -218,9 +298,15 @@ class Repository:
             runner_name=row[4],
             created_at=row[5],
             result=RegressionResult.model_validate_json(row[6]),
+            metadata=metadata,
         )
 
-    _RUN_COLS = "run_id, case_id, case_hash, label, runner_name, created_at, result_json"
+    _RUN_COLS = (
+        "run_id, case_id, case_hash, label, runner_name, created_at, result_json,"
+        " adapter_name, adapter_tier, executable_path, executable_sha256, argv_json,"
+        " env_names_json, timeout_seconds, limits_json, exit_code, duration_ms,"
+        " stdout_truncated, stderr_truncated"
+    )
 
     def get_run(self, run_id: int) -> StoredRun:
         row = self._conn.execute(

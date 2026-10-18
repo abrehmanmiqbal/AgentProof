@@ -61,3 +61,19 @@ Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size
 2. `ruff check .` (ruff 0.16.8, Python 3.13.16): All checks passed.
 3. `pip download pydantic`: FAILED (DNS "Name or service not known" for pypi.org). `python3 -m pytest`: no module named pytest. So the test suite, `agentproof demo` and the session-4 claims (142 tests) were NOT re-run.
 4. GitHub API (authenticated): refused by the session ("GitHub access ... not enabled"); `add_repo` push: "link your GitHub account". CI result for commits after 161104d NOT obtained; still missing from this file.
+
+## 2026-10-18 (session 7)
+Environment: Linux container, **Python 3.13.16** venv (not 3.12.3 as in session 4), pydantic 2.14.1, pytest 8.4.2, ruff 0.17.1. Python 3.11/3.12 locally: NOT available (CI only).
+Step 0:
+1. `git ls-remote origin main` = local HEAD = d86dd2e0abded9ad17572e67bff710f4b867ea17.
+2. `pip download pydantic`: **works now** (exit 0; pydantic-core 2.50.1 wheel downloaded). The session 5-6 pypi block is gone.
+3. GitHub API (unauthenticated GET `/actions/runs`): workflow `tests` **completed/success** for d86dd2e, 1e71429, 2c2affd, 5c2bd95, 7d02442, 05fe3fb, 161104d, 3b25690 (8 most recent runs). Per-job (3.11/3.12) results were NOT inspected this session, only the run-level conclusion.
+4. `pip install -e ".[dev]"` OK; `ruff check .` clean; `pytest` **142 passed in 0.80s**; `agentproof demo` exit 0 (both assertions passed); `./examples/run_example.sh` exit 0, `report 1 2` verdict IMPROVED (2 fixed, 1 still passing). So the session-4 claims (142 tests, ruff clean, demo, example) are now re-verified on Python 3.13.16.
+
+Task 1: DB migration v2 + run metadata (test-first):
+5. Wrote `tests/test_migration.py` first: collection error (`RunMetadata` missing); after adding only the model: **7 failed, 5 passed** (failures for the right reasons: no v2, no `metadata=` argument). A v1 database is built from a frozen copy of the shipped v1 DDL via raw SQL.
+6. Implemented v2 (`ALTER TABLE runs ADD COLUMN` x12, all nullable), `RunMetadata` model, `record_run(..., metadata=)`, `StoredRun.metadata`. Result: `pytest` **161 passed**, `ruff check .` clean. (`tests/test_storage.py` had a hardcoded `== 1` schema-version assertion, updated to 2.)
+7. Real defects/weaknesses found while writing the tests: (a) the version bump ran *after* COMMIT, so a crash between them would leave a v2 schema labelled v1 and the next start would re-run `ALTER TABLE` and fail; the bump now runs inside the migration transaction; (b) `PRAGMA user_version = -1` made `range(-1, N)` index `MIGRATIONS[-1]` (it was only refused by accident); now refused explicitly with `StorageError`.
+8. Mutation checks (break code, confirm a test fails, restore): removing the negative-version guard -> `test_negative_user_version_is_refused_not_misapplied` failed; moving the bump after COMMIT -> **survived at first** (my rollback test did not cover it), so I added `test_version_bump_happens_inside_the_migration_transaction` (SQLite trace: BEGIN < bump < COMMIT); the mutation is then caught; disabling metadata validation on read -> 6 tampered-metadata tests failed. After each, code restored: `pytest` **161 passed**.
+9. Test-bug notes: my first `RunMetadata` test passed `adapter_tier` twice (TypeError), and the trace test compared "BEGIN" to the traced "BEGIN;" (StopIteration); both were mistakes in the tests, not the code, and were fixed in the tests.
+NOT verified: migration of a large v1 database (only 1 case / 2 runs used); concurrent opening of a v1 file by two processes while it migrates.
