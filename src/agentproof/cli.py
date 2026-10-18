@@ -22,6 +22,7 @@ from .runner import RUNNERS, DeterministicLocalRunner
 from .storage import MAX_JSON_BYTES, Repository, StorageError
 
 DEFAULT_DB = "agentproof.db"
+MAX_REPEAT = 20
 
 
 class CliError(Exception):
@@ -64,6 +65,35 @@ def _demo() -> int:
     return 0 if result.passed else 1
 
 
+def _repeat_count(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"must be an integer 1-{MAX_REPEAT}") from None
+    if not 1 <= value <= MAX_REPEAT:
+        raise argparse.ArgumentTypeError(f"must be between 1 and {MAX_REPEAT}")
+    return value
+
+
+def _outcome_signature(result) -> tuple:
+    """What counts as 'the same result' across repeats: pass/fail per assertion, not raw output."""
+    return (
+        result.passed,
+        result.error is not None,
+        tuple((a.path, a.operator.value, a.passed) for a in result.assertions),
+    )
+
+
+def _write_report(path: str, text: str, *, force: bool) -> None:
+    try:
+        with open(path, "w" if force else "x", encoding="utf-8") as handle:
+            handle.write(text)
+    except FileExistsError:
+        raise CliError(f"'{path}' already exists; use --force to overwrite") from None
+    except OSError as exc:
+        raise CliError(f"Cannot write report: {exc.strerror or exc}") from exc
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="agentproof", description="Offline-first AI agent regression testing.")
     parser.add_argument("--db", default=os.environ.get("AGENTPROOF_DB", DEFAULT_DB), help="SQLite file")
@@ -88,6 +118,12 @@ def _build_parser() -> argparse.ArgumentParser:
     run.add_argument("case_id")
     run.add_argument("--label", required=True)
     run.add_argument("--runner", choices=sorted(RUNNERS), default="local")
+    run.add_argument(
+        "--repeat",
+        type=_repeat_count,
+        default=1,
+        help=f"Run the case N times (1-{MAX_REPEAT}) and report whether outcomes were stable.",
+    )
 
     run_all = sub.add_parser(
         "run-all", help="Run every saved case and record each result (exit 1 if any fail)."
@@ -108,6 +144,8 @@ def _build_parser() -> argparse.ArgumentParser:
     rep.add_argument("before_run_id", type=int)
     rep.add_argument("after_run_id", type=int)
     rep.add_argument("--format", choices=["markdown", "json"], default="markdown")
+    rep.add_argument("--output", help="Write the report to this file instead of stdout.")
+    rep.add_argument("--force", action="store_true", help="Overwrite --output if it exists.")
     return parser
 
 
@@ -138,10 +176,28 @@ def _dispatch(args: argparse.Namespace) -> int:
 
         if args.command == "run":
             case = repo.get_case(args.case_id)
-            result = RegressionEngine(RUNNERS[args.runner]()).run_case(case)
-            run_id = repo.record_run(case, result, label=args.label, runner_name=args.runner)
-            _emit({"run_id": run_id, "passed": result.passed, "error": result.error})
-            return 0 if result.passed else 1
+            results, run_ids = [], []
+            for _ in range(args.repeat):
+                result = RegressionEngine(RUNNERS[args.runner]()).run_case(case)
+                run_ids.append(
+                    repo.record_run(case, result, label=args.label, runner_name=args.runner)
+                )
+                results.append(result)
+            all_passed = all(r.passed for r in results)
+            if args.repeat == 1:
+                _emit({"run_id": run_ids[0], "passed": results[0].passed, "error": results[0].error})
+            else:
+                passed = sum(1 for r in results if r.passed)
+                _emit(
+                    {
+                        "run_ids": run_ids,
+                        "total": len(results),
+                        "passed": passed,
+                        "failed": len(results) - passed,
+                        "stable": len({_outcome_signature(r) for r in results}) == 1,
+                    }
+                )
+            return 0 if all_passed else 1
 
         if args.command == "run-all":
             case_ids = repo.list_case_ids()
@@ -189,7 +245,12 @@ def _dispatch(args: argparse.Namespace) -> int:
         if args.command == "report":
             comparison = compare_runs(repo.get_run(args.before_run_id), repo.get_run(args.after_run_id))
             render = render_json if args.format == "json" else render_markdown
-            print(render(comparison), end="")
+            text = render(comparison)
+            if args.output:
+                _write_report(args.output, text, force=args.force)
+                print(f"wrote {args.output}")
+            else:
+                print(text, end="")
             return 1 if comparison.verdict == Verdict.REGRESSED else 0
 
     return 2

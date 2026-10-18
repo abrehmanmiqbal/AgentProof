@@ -32,5 +32,9 @@ Only commands actually executed are listed. Environment: Linux container, Python
 7. Black-box (bash, temp DB): `run-all` with no cases -> exit 2 + clear error; two cases with `--runner local-legacy` -> exit 1 (1 passed, 1 failed, both recorded as runs 1 and 2); `--runner local` -> exit 0; `case delete greet-ava` without `--yes` -> exit 2, nothing deleted; with `--yes` -> exit 0, `runs_deleted: 2`; `case list` -> only `echo-x`.
 8. Observed (not fixed, not specific to new code): piping CLI output into `head` closes the pipe and Python prints a `BrokenPipeError` traceback.
 
+9. `report --output/--force` and `run --repeat N`, test-first: added 8 tests; first run **6 failed, 17 passed** (one test, `--repeat` out of range, passed vacuously because argparse rejected the unknown flag). After implementing: `pytest` **69 passed in 0.51s**, `ruff check .` clean.
+10. Mutation check: temporarily widened the `--repeat` range check to -5..999 -> `test_run_repeat_out_of_range_is_rejected` **failed** (so it really tests the check); restored, **69 passed**.
+11. Black-box (bash, temp DB): `run --repeat 3` -> runs 2,3,4 recorded, `stable: true`, exit 0; `report --output r.md` exit 0 and file written; same command again -> exit 2 ("already exists; use --force"); with `--force` exit 0; nonexistent directory -> exit 2 clean error; `--repeat 99` -> exit 2 ("must be between 1 and 20"). Flaky detection verified only via a test-injected flaky runner (no real nondeterministic agent exists yet).
+
 ## Not verified
 Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.

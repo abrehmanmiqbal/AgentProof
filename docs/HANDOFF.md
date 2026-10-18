@@ -1,7 +1,7 @@
 # Handoff — Read This First
 
 ## State
-Session 2 work was pushed to GitHub `main` in session 3 (d5b6852 -> e9e4ac4). Session 3 added the `report` command (61 tests passing, ruff clean, Python 3.12.3). **CI on GitHub has still not been observed** (GitHub API was rate-limited when checked) — look at the Actions tab first.
+Session 2 work was pushed to GitHub `main` in session 3 (d5b6852 -> e9e4ac4). Session 3 added the `report` command (69 tests passing, ruff clean, Python 3.12.3). **CI on GitHub has still not been observed** (GitHub API was rate-limited when checked) — look at the Actions tab first.
 
 ## Step 0 (session 2 delivery, now done): land the work
 From a machine with write access:
@@ -28,4 +28,4 @@ Then watch the GitHub Actions run (3.11 + 3.12; now includes `ruff check .`) and
 - No LICENSE file: owner must choose one.
 
 ## Next concrete task
-Reports are done (`report.py`, `agentproof report`). `case delete --yes` and `run-all` are done. Next: `--output` for reports, repeat-run/flakiness (`--repeat N`). After that: repeat-run flakiness (`--repeat N`), more assertion operators (numeric `gt/lt`, `regex` with length limit), then adapter-isolation design (D-008).
+Reports are done (`report.py`, `agentproof report`). `case delete --yes` and `run-all` are done. `report --output` and `run --repeat N` are done too. Next: more assertion operators (numeric `gt/lt`, `regex` with length limit; mind ReDoS), CLI docs in README + `examples/`, then adapter-isolation design (D-008). `--repeat` for `run-all` is a possible small follow-up.

@@ -7,7 +7,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 
 ## Milestone 1 — Deterministic core
 - [x] Typed models, runner interface, deterministic runner, assertions, unit tests, demo CLI, CI workflow file.
-- [x] Execute tests and record exact evidence (5/5 initially; 61/61 now).
+- [x] Execute tests and record exact evidence (5/5 initially; 69/69 now).
 - [x] Fix real defects found: unicode-digit path crash; bool==int false pass; runner exceptions crashing engine.
 - [ ] Confirm CI actually passes on GitHub (3.11 and 3.12) — needs push access.
 - [ ] Verify on Python 3.11.
@@ -19,9 +19,9 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Tests: persistence across connections, hash stability, history immutability, size limits, injection-like ids, corrupt/newer DB.
 - [ ] Persist raw traces (no trace model yet).
 - [x] Reports: `report` command renders a deterministic, timestamp-free Markdown/JSON report from two runs to stdout (golden-file + injection tests).
-- [ ] Write reports to a file / persist them (`--output`).
+- [x] `report --output PATH [--force]` writes the report to a file (refuses to overwrite without `--force`).
 - [ ] Migration test with a real v1 -> v2 upgrade once a v2 exists.
-- [ ] Flakiness/repeat-run support (run N times, report stability).
+- [x] `run --repeat N` (1-20): records N runs, reports pass/fail counts and `stable` (same per-assertion outcomes every time). Not yet available for `run-all`.
 
 ## Milestone 3 — API and CLI
 - [x] CLI: case add/list/show, run, runs, compare (+ exit codes) with tests.

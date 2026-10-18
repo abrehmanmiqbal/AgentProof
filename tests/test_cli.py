@@ -167,3 +167,100 @@ def test_run_all_with_no_cases_is_an_error_not_a_silent_pass(tmp_path, capsys):
     capsys.readouterr()
     assert cli(tmp_path, "run-all", "--label", "v1") == 2
     assert "no cases" in capsys.readouterr().err.lower()
+
+
+def _improved_pair(tmp_path):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    cli(tmp_path, "run", "greet-ava", "--label", "b", "--runner", "local-legacy")
+    cli(tmp_path, "run", "greet-ava", "--label", "a", "--runner", "local")
+
+
+def test_report_output_writes_file_identical_to_stdout_render(tmp_path, capsys):
+    _improved_pair(tmp_path)
+    capsys.readouterr()
+    assert cli(tmp_path, "report", "1", "2") == 0
+    expected = capsys.readouterr().out
+    target = tmp_path / "r.md"
+    assert cli(tmp_path, "report", "1", "2", "--output", str(target)) == 0
+    assert target.read_text(encoding="utf-8") == expected
+    assert str(target) in capsys.readouterr().out
+
+
+def test_report_output_refuses_overwrite_without_force(tmp_path, capsys):
+    _improved_pair(tmp_path)
+    target = tmp_path / "r.md"
+    target.write_text("precious")
+    capsys.readouterr()
+    assert cli(tmp_path, "report", "1", "2", "--output", str(target)) == 2
+    assert "--force" in capsys.readouterr().err
+    assert target.read_text() == "precious"
+    assert cli(tmp_path, "report", "1", "2", "--output", str(target), "--force") == 0
+    assert target.read_text().startswith("# AgentProof report")
+
+
+def test_report_output_bad_path_is_clean_error(tmp_path, capsys):
+    _improved_pair(tmp_path)
+    capsys.readouterr()
+    missing = tmp_path / "no_such_dir" / "r.md"
+    assert cli(tmp_path, "report", "1", "2", "--output", str(missing)) == 2
+    assert "error:" in capsys.readouterr().err
+
+
+def test_report_output_keeps_regression_exit_code(tmp_path, capsys):
+    _improved_pair(tmp_path)
+    target = tmp_path / "r.json"
+    assert cli(tmp_path, "report", "2", "1", "--format", "json", "--output", str(target)) == 1
+    assert json.loads(target.read_text())["verdict"] == "regressed"
+
+
+def test_run_repeat_records_each_run_and_reports_stability(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    capsys.readouterr()
+    assert cli(tmp_path, "run", "greet-ava", "--label", "r", "--repeat", "3") == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out == {"run_ids": [1, 2, 3], "total": 3, "passed": 3, "failed": 0, "stable": True}
+    assert cli(tmp_path, "runs", "greet-ava") == 0
+    assert len(json.loads(capsys.readouterr().out)) == 3
+
+
+def test_run_default_output_format_unchanged(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    capsys.readouterr()
+    assert cli(tmp_path, "run", "greet-ava", "--label", "r") == 0
+    assert set(json.loads(capsys.readouterr().out)) == {"run_id", "passed", "error"}
+
+
+def test_run_repeat_detects_flaky_runner(tmp_path, capsys, monkeypatch):
+    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+
+    class Flaky(DeterministicLocalRunner):
+        calls = 0
+
+        def run(self, input_data):
+            Flaky.calls += 1
+            out = super().run(input_data)
+            if Flaky.calls % 3 == 0:  # every third run gives a wrong answer
+                out = {**out, "message": "Hi!"}
+            return out
+
+    monkeypatch.setitem(RUNNERS, "flaky", Flaky)
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    capsys.readouterr()
+    assert cli(tmp_path, "run", "greet-ava", "--label", "f", "--runner", "flaky", "--repeat", "3") == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["passed"] == 2 and out["failed"] == 1
+    assert out["stable"] is False
+
+
+def test_run_repeat_out_of_range_is_rejected(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    for bad in ("0", "-1", "21", "abc"):
+        try:
+            cli(tmp_path, "run", "greet-ava", "--label", "r", "--repeat", bad)
+        except SystemExit as exc:
+            assert exc.code == 2
+        else:
+            raise AssertionError(f"--repeat {bad} was accepted")
+    capsys.readouterr()
+    cli(tmp_path, "runs", "greet-ava")
+    assert json.loads(capsys.readouterr().out) == []  # nothing was recorded

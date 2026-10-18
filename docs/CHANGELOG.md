@@ -13,3 +13,4 @@ User-visible changes are recorded here. This project has not had a software rele
 - Added ruff to dev dependencies and CI.
 - Added `agentproof report <before_run_id> <after_run_id> [--format markdown|json]`: deterministic, timestamp-free report from a comparison; untrusted values are length-limited and escaped. Exits 1 on regression.
 - Added `agentproof case delete <id> --yes` (deletes the case and its runs; refuses without `--yes`) and `agentproof run-all --label L [--runner R]` (runs and records every saved case; exit 1 if any fail, exit 2 if there are no cases).
+- Added `agentproof report --output PATH [--force]` (refuses to overwrite an existing file without `--force`) and `agentproof run --repeat N` (1-20; records each run, reports `stable` when every repeat had identical per-assertion outcomes; exit 1 if any repeat failed). Default `run` output is unchanged.
