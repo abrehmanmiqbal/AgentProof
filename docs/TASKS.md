@@ -7,7 +7,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 
 ## Milestone 1 — Deterministic core
 - [x] Typed models, runner interface, deterministic runner, assertions, unit tests, demo CLI, CI workflow file.
-- [x] Execute tests and record exact evidence (5/5 initially; 44/44 now).
+- [x] Execute tests and record exact evidence (5/5 initially; 61/61 now).
 - [x] Fix real defects found: unicode-digit path crash; bool==int false pass; runner exceptions crashing engine.
 - [ ] Confirm CI actually passes on GitHub (3.11 and 3.12) — needs push access.
 - [ ] Verify on Python 3.11.
@@ -26,7 +26,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 ## Milestone 3 — API and CLI
 - [x] CLI: case add/list/show, run, runs, compare (+ exit codes) with tests.
 - [x] CLI: `report <before> <after> [--format markdown|json]` (exit 1 if regressed).
-- [ ] CLI: case delete, run-all/suite command.
+- [x] CLI: `case delete <id> --yes` (refuses without --yes; reports runs deleted) and `run-all --label L [--runner R]` (exit 1 if any fail, exit 2 if no cases).
 - [ ] Validated HTTP API (local-only bind by default) + integration tests.
 - [ ] Docs for CLI/API usage (README only has install/test right now).
 

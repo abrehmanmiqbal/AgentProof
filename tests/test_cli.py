@@ -97,3 +97,73 @@ def test_corrupt_db_is_predictable_cli_error(tmp_path, capsys):
     bad.write_text("not a db")
     assert main(["--db", str(bad), "case", "list"]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+ECHO_CASE = {
+    "case_id": "echo-x",
+    "name": "Echo",
+    "input": {"action": "echo", "x": 1},
+    "assertions": [{"path": "action", "operator": "equals", "expected": "echo"}],
+}
+
+
+def test_case_delete_requires_yes_and_keeps_data(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    cli(tmp_path, "run", "greet-ava", "--label", "a")
+    capsys.readouterr()
+    assert cli(tmp_path, "case", "delete", "greet-ava") == 2
+    assert "--yes" in capsys.readouterr().err
+    assert cli(tmp_path, "case", "list") == 0
+    assert json.loads(capsys.readouterr().out) == ["greet-ava"]
+
+
+def test_case_delete_with_yes_removes_case_and_runs(tmp_path, capsys):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    cli(tmp_path, "run", "greet-ava", "--label", "a")
+    cli(tmp_path, "run", "greet-ava", "--label", "b")
+    capsys.readouterr()
+    assert cli(tmp_path, "case", "delete", "greet-ava", "--yes") == 0
+    assert json.loads(capsys.readouterr().out) == {"deleted": "greet-ava", "runs_deleted": 2}
+    cli(tmp_path, "case", "list")
+    assert json.loads(capsys.readouterr().out) == []
+    assert cli(tmp_path, "compare", "1", "2") == 2  # runs are gone too
+
+
+def test_case_delete_unknown_case_is_clean_error(tmp_path, capsys):
+    capsys.readouterr()
+    assert cli(tmp_path, "case", "delete", "nope", "--yes") == 2
+    assert "not found" in capsys.readouterr().err
+
+
+def _two_cases(tmp_path):
+    cli(tmp_path, "case", "add", write_case(tmp_path))
+    cli(tmp_path, "case", "add", write_case(tmp_path, ECHO_CASE, "echo.json"))
+
+
+def test_run_all_records_every_case_and_exits_zero_when_all_pass(tmp_path, capsys):
+    _two_cases(tmp_path)
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "v1") == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["total"] == 2 and out["passed"] == 2 and out["failed"] == 0
+    assert [r["case_id"] for r in out["results"]] == ["echo-x", "greet-ava"]
+    assert all(isinstance(r["run_id"], int) for r in out["results"])
+    assert cli(tmp_path, "runs", "echo-x") == 0
+    assert json.loads(capsys.readouterr().out)[0]["label"] == "v1"
+
+
+def test_run_all_exits_one_if_any_case_fails_but_still_runs_the_rest(tmp_path, capsys):
+    _two_cases(tmp_path)
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "old", "--runner", "local-legacy") == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["passed"] == 1 and out["failed"] == 1
+    by_id = {r["case_id"]: r for r in out["results"]}
+    assert by_id["greet-ava"]["passed"] is False
+    assert by_id["echo-x"]["passed"] is True
+
+
+def test_run_all_with_no_cases_is_an_error_not_a_silent_pass(tmp_path, capsys):
+    capsys.readouterr()
+    assert cli(tmp_path, "run-all", "--label", "v1") == 2
+    assert "no cases" in capsys.readouterr().err.lower()

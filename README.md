@@ -33,6 +33,7 @@ agentproof case add case.json
 agentproof run greet-ava --label before --runner local-legacy   # fails (exit 1)
 agentproof run greet-ava --label after  --runner local          # passes
 agentproof compare 1 2                                          # verdict: improved
+agentproof run-all --label v2                                       # run every saved case; exit 1 if any fail
 agentproof report 1 2                                           # deterministic Markdown report (--format json also)
 ```
 

@@ -28,5 +28,9 @@ Only commands actually executed are listed. Environment: Linux container, Python
 4. `report` command, test-first: wrote tests/test_report.py + hand-written golden file; first run failed at collection (module missing). After implementing `report.py` + CLI: `pytest` **55 passed in 0.27s**, `ruff check .` clean.
 5. Black-box: `case add` / `run --runner local-legacy` (exit 1) / `run --runner local` (exit 0) / `report 1 2` exit 0, output matched the golden shape; two consecutive `report 1 2` outputs were byte-identical (`cmp`).
 
+6. `case delete` + `run-all`, test-first: added 6 tests to tests/test_cli.py; first run **6 failed, 9 passed** (expected: commands missing). After implementing: `pytest` **61 passed in 0.36s**, `ruff check .` clean.
+7. Black-box (bash, temp DB): `run-all` with no cases -> exit 2 + clear error; two cases with `--runner local-legacy` -> exit 1 (1 passed, 1 failed, both recorded as runs 1 and 2); `--runner local` -> exit 0; `case delete greet-ava` without `--yes` -> exit 2, nothing deleted; with `--yes` -> exit 0, `runs_deleted: 2`; `case list` -> only `echo-x`.
+8. Observed (not fixed, not specific to new code): piping CLI output into `head` closes the pipe and Python prints a `BrokenPipeError` traceback.
+
 ## Not verified
 Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.

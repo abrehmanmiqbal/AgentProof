@@ -80,11 +80,20 @@ def _build_parser() -> argparse.ArgumentParser:
     case.add_parser("list", help="List case ids.")
     show = case.add_parser("show", help="Show a saved case.")
     show.add_argument("case_id")
+    delete = case.add_parser("delete", help="Delete a case and all of its recorded runs.")
+    delete.add_argument("case_id")
+    delete.add_argument("--yes", action="store_true", help="Confirm the irreversible deletion.")
 
     run = sub.add_parser("run", help="Run a saved case and record the result.")
     run.add_argument("case_id")
     run.add_argument("--label", required=True)
     run.add_argument("--runner", choices=sorted(RUNNERS), default="local")
+
+    run_all = sub.add_parser(
+        "run-all", help="Run every saved case and record each result (exit 1 if any fail)."
+    )
+    run_all.add_argument("--label", required=True)
+    run_all.add_argument("--runner", choices=sorted(RUNNERS), default="local")
 
     runs = sub.add_parser("runs", help="List recorded runs for a case.")
     runs.add_argument("case_id")
@@ -113,6 +122,16 @@ def _dispatch(args: argparse.Namespace) -> int:
                 _emit({"saved": True, "case_hash": digest})
             elif args.case_command == "list":
                 _emit(repo.list_case_ids())
+            elif args.case_command == "delete":
+                repo.get_case(args.case_id)  # clean "not found" error before anything else
+                run_count = len(repo.list_runs(args.case_id))
+                if not args.yes:
+                    raise CliError(
+                        f"Refusing to delete '{args.case_id}' and its {run_count} recorded run(s) "
+                        "without --yes"
+                    )
+                repo.delete_case(args.case_id)
+                _emit({"deleted": args.case_id, "runs_deleted": run_count})
             else:
                 _emit(repo.get_case(args.case_id).model_dump(mode="json"))
             return 0
@@ -123,6 +142,29 @@ def _dispatch(args: argparse.Namespace) -> int:
             run_id = repo.record_run(case, result, label=args.label, runner_name=args.runner)
             _emit({"run_id": run_id, "passed": result.passed, "error": result.error})
             return 0 if result.passed else 1
+
+        if args.command == "run-all":
+            case_ids = repo.list_case_ids()
+            if not case_ids:
+                raise CliError("No cases saved; add one with 'case add' first")
+            results = []
+            for case_id in case_ids:
+                case = repo.get_case(case_id)
+                result = RegressionEngine(RUNNERS[args.runner]()).run_case(case)
+                run_id = repo.record_run(case, result, label=args.label, runner_name=args.runner)
+                results.append(
+                    {"case_id": case_id, "run_id": run_id, "passed": result.passed, "error": result.error}
+                )
+            passed = sum(1 for r in results if r["passed"])
+            _emit(
+                {
+                    "total": len(results),
+                    "passed": passed,
+                    "failed": len(results) - passed,
+                    "results": results,
+                }
+            )
+            return 0 if passed == len(results) else 1
 
         if args.command == "runs":
             _emit(
