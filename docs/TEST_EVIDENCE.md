@@ -36,5 +36,15 @@ Only commands actually executed are listed. Environment: Linux container, Python
 10. Mutation check: temporarily widened the `--repeat` range check to -5..999 -> `test_run_repeat_out_of_range_is_rejected` **failed** (so it really tests the check); restored, **69 passed**.
 11. Black-box (bash, temp DB): `run --repeat 3` -> runs 2,3,4 recorded, `stable: true`, exit 0; `report --output r.md` exit 0 and file written; same command again -> exit 2 ("already exists; use --force"); with `--force` exit 0; nonexistent directory -> exit 2 clean error; `--repeat 99` -> exit 2 ("must be between 1 and 20"). Flaky detection verified only via a test-injected flaky runner (no real nondeterministic agent exists yet).
 
+## 2026-10-18 (session 4)
+Local env: Linux, Python 3.12.3 venv. Python 3.11 not available locally.
+1. GitHub API (authenticated, token never printed/stored): latest runs on `main`: 161104d `tests` **completed/success**; jobs `test (3.11)` and `test (3.12)` both success, every step (install, `ruff check .`, `pytest`, `agentproof demo`) success. Earlier commits 3b25690, 2aca26b, e9e4ac4, d5b6852 also success (5 runs listed of 11 total). `git ls-remote origin main` = 161104d.
+2. Baseline on fresh clone: `ruff check .` clean, `pytest` **69 passed**.
+3. ReDoS measurements (CPython 3.12.3, one `re.search` each, 20 s timeout): `a*a*b` on 2,000 chars 1.84 s; on 5,000 and 10,000 **>20 s**; `a*a*a*b` 300 chars 0.64 s, 600 chars 9.0 s, 1,000 chars >20 s; `(a+)+b` 22 chars 0.40 s; `a*b` 10,000 chars 0.06 s. A first measuring script without per-run timeouts hung and was killed after 300 s.
+4. Operators, test-first: tests/test_operators.py written first; first run = collection error (`'gt' is not a valid AssertionOperator`). After implementation: **59 passed, 1 failed**; the failure was a wrong expectation in my test (nested counts 10x10x10x10 = 10,000 equals the cap, not above it); test changed to 5 levels -> `pytest` **129 passed**.
+5. Mutation checks on `regex_safety.py`: removing the alternation-in-repeat check -> 2 tests failed (good). Raising `MAX_UNBOUNDED_REPEATS` 1 -> 5 -> **tests still passed** (rule is redundant with the cost cap; documented in D-009).
+6. Fuzz (`scripts/fuzz_regex_safety.py`, seed 1234, 3,000 random patterns, adversarial texts, subprocess timeout 30 s): with text cap 10,000 and cost cap 1e9: 577 accepted, slowest **2.77 s**; cost cap 2e8: 494 accepted, slowest 2.45 s (`a+a{2}a{2}^`, cost model underestimates); text cap lowered to 5,000: 570 accepted, slowest **0.81 s** (re-run with the committed script: 0.73 s), **0 timeouts**. This is evidence, not proof.
+7. Assertion-count cap, test-first: 1 failed, 60 passed; after change `ruff check .` flagged import order (auto-fixed); final `ruff check .` clean, `pytest` **130 passed**, `agentproof demo` exit 0.
+
 ## Not verified
 Python 3.11; CI on GitHub; Windows/macOS; behavior with databases > trivial size; concurrent access to one SQLite file; memory use on near-limit (1 MB) payloads.

@@ -1,7 +1,7 @@
 # Handoff — Read This First
 
 ## State
-Session 2 work was pushed to GitHub `main` in session 3 (d5b6852 -> e9e4ac4). Session 3 added the `report` command (69 tests passing, ruff clean, Python 3.12.3). **CI on GitHub has still not been observed** (GitHub API was rate-limited when checked) — look at the Actions tab first.
+Session 4 added assertion operators `gt`/`lt`/`regex` (D-009) and a 100-assertion cap (130 tests passing, ruff clean, Python 3.12.3). **CI was observed passing** on 161104d for 3.11 and 3.12 (session 4). Check the Actions tab for the newest commit first.
 
 ## Step 0 (session 2 delivery, now done): land the work
 From a machine with write access:
@@ -27,5 +27,5 @@ Then watch the GitHub Actions run (3.11 + 3.12; now includes `ruff check .`) and
 - `local-legacy` runner is a deliberate demo "bug", not a real agent.
 - No LICENSE file: owner must choose one.
 
-## Next concrete task
+## Next concrete task (see the end of the file for the session-4 update)
 Reports are done (`report.py`, `agentproof report`). `case delete --yes` and `run-all` are done. `report --output` and `run --repeat N` are done too. Next: more assertion operators (numeric `gt/lt`, `regex` with length limit; mind ReDoS), CLI docs in README + `examples/`, then adapter-isolation design (D-008). `--repeat` for `run-all` is a possible small follow-up.

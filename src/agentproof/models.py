@@ -1,10 +1,15 @@
 """Typed models used by AgentProof's regression-testing core."""
 from __future__ import annotations
 
+import math
 from enum import StrEnum
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from .regex_safety import UnsafeRegexError, validate_pattern
+
+MAX_ASSERTIONS = 100
 
 
 class AssertionOperator(StrEnum):
@@ -12,6 +17,9 @@ class AssertionOperator(StrEnum):
     NOT_EQUALS = "not_equals"
     CONTAINS = "contains"
     EXISTS = "exists"
+    GT = "gt"
+    LT = "lt"
+    REGEX = "regex"
 
 
 class AssertionSpec(BaseModel):
@@ -21,6 +29,21 @@ class AssertionSpec(BaseModel):
     operator: AssertionOperator
     expected: Any = None
 
+    @model_validator(mode="after")
+    def _validate_expected_for_operator(self) -> AssertionSpec:
+        if self.operator in (AssertionOperator.GT, AssertionOperator.LT):
+            value = self.expected
+            if isinstance(value, bool) or not isinstance(value, int | float):
+                raise ValueError(f"'{self.operator.value}' requires a numeric 'expected'")
+            if isinstance(value, float) and not math.isfinite(value):
+                raise ValueError("'expected' must be a finite number")
+        elif self.operator == AssertionOperator.REGEX:
+            try:
+                validate_pattern(self.expected)
+            except UnsafeRegexError as exc:
+                raise ValueError(str(exc)) from exc
+        return self
+
 
 class RegressionCase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -28,7 +51,7 @@ class RegressionCase(BaseModel):
     case_id: str = Field(min_length=1, max_length=128)
     name: str = Field(min_length=1, max_length=256)
     input: dict[str, Any]
-    assertions: list[AssertionSpec] = Field(min_length=1)
+    assertions: list[AssertionSpec] = Field(min_length=1, max_length=MAX_ASSERTIONS)
 
 
 class AssertionResult(BaseModel):

@@ -39,3 +39,12 @@
 **Status:** Accepted  
 **Decision:** SQLite with ordered append-only migrations via `PRAGMA user_version`; refuse newer schemas; runs store the SHA-256 of the exact case JSON; 1,000,000-byte cap per stored case/result.  
 **Reason:** Reproducibility, safe upgrades, bounded storage. Note: adapter-isolation design remains an open decision and must precede any adapter that executes code.
+
+## D-009: Regex assertions are restricted and fail closed (ReDoS)
+**Status:** Accepted (session 4)  
+**Decision:** `regex` uses `re.search`. Patterns are validated when the `AssertionSpec` is built (so `case add` rejects them): max 200 chars; no backreferences/conditionals; at most one unbounded repeat (`*`, `+`, `{n,}`, counted through enclosing fixed repeats); no variable-width repeat inside another; no alternation inside a variable repeat; repeat counts <= 100 (nested product <= 10,000); estimated cost <= 2e8 steps. Matched text must be <= 5,000 chars, otherwise the assertion fails with a clear message (never truncated). `gt`/`lt` require a finite non-bool number for `expected` and a non-bool number as actual. A case may have at most 100 assertions.  
+**Reason:** CPython `re` backtracks and cannot be interrupted, so safety must be preventive. Measured on 3.12.3: `a*a*b` on 2,000 chars took 1.8 s and >20 s on 5,000; `(a+)+b` is exponential. Fuzzing 570 accepted patterns against adversarial 5,000-char texts: slowest 0.73-0.81 s, none >30 s.  
+**Limits / trade-offs:** Not a proof. The cost model is an estimate; it rejects some legitimate patterns (e.g. `\w+@\w+\.\w+`, `(foo|bar)+`). The "max 1 unbounded repeat" rule is redundant with the cost cap (mutation check showed tests pass without it); kept as an explicit defense. Parsing uses `re._parser`/`re._constants` (private, present in 3.11 and 3.12); if unavailable, regex is rejected entirely. A hard guarantee would need a linear-time engine (e.g. RE2) or a killable worker process; revisit with the adapter-isolation work.
+
+## D-010: Adapter isolation (OPEN, design required before any adapter that runs code)
+**Status:** Open. (HANDOFF previously called this "D-008"; D-008 is the persistence decision.)  

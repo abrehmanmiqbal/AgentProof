@@ -5,6 +5,7 @@ import re
 from typing import Any
 
 from .models import AssertionOperator, AssertionResult, AssertionSpec
+from .regex_safety import MAX_TEXT_LENGTH
 
 _INDEX_RE = re.compile(r"[0-9]+")
 
@@ -38,6 +39,10 @@ def _resolve_path(value: Any, path: str) -> tuple[bool, Any]:
     return True, current
 
 
+def _is_number(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
 def evaluate_assertion(output: dict[str, Any], spec: AssertionSpec) -> AssertionResult:
     exists, actual = _resolve_path(output, spec.path)
 
@@ -59,6 +64,27 @@ def evaluate_assertion(output: dict[str, Any], spec: AssertionSpec) -> Assertion
         except (TypeError, AttributeError):
             passed = False
         message = "Expected value is contained" if passed else "Expected value is not contained"
+    elif spec.operator in (AssertionOperator.GT, AssertionOperator.LT):
+        if not _is_number(actual):
+            passed = False
+            message = "Actual value is not a number"
+        elif spec.operator == AssertionOperator.GT:
+            passed = actual > spec.expected
+            message = "Value is greater" if passed else "Value is not greater"
+        else:
+            passed = actual < spec.expected
+            message = "Value is less" if passed else "Value is not less"
+    elif spec.operator == AssertionOperator.REGEX:
+        if not isinstance(actual, str):
+            passed = False
+            message = "Actual value is not a string"
+        elif len(actual) > MAX_TEXT_LENGTH:
+            passed = False
+            message = f"Actual text is too long for regex matching (> {MAX_TEXT_LENGTH} chars)"
+        else:
+            # Pattern was validated when the AssertionSpec was constructed (regex_safety).
+            passed = re.search(spec.expected, actual) is not None
+            message = "Pattern matches" if passed else "Pattern does not match"
     else:
         passed = False
         message = f"Unsupported operator: {spec.operator}"

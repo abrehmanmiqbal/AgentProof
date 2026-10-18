@@ -10,3 +10,7 @@
 - Tests: 5 -> 44, all passing on Python 3.12.3. Ruff clean.
 - BLOCKED on push: no GitHub credentials. Delivered git bundle + patch series instead.
 - Next: reports (Markdown/JSON export), run-all, repeat-run flakiness, adapter isolation design. See HANDOFF.md.
+
+## 2026-10-18 (session 4)
+- Step 0: CI on 161104d observed green (3.11 + 3.12) via GitHub API.
+- Added `gt`/`lt`/`regex` operators with ReDoS guards (D-009), 100-assertion cap, fuzz script; tests 69 -> 130.
