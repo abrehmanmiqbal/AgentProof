@@ -1,6 +1,6 @@
 # Adapter Isolation Design (D-010)
 
-**Status: PROPOSED, design only. Nothing here is implemented or tested.** No adapter that runs user code, commands, or network calls may be written until the owner has reviewed this document and its open questions (end of file). Environment facts checked in session 4 (Linux 6.18, container, uid 0): `resource`, `os.killpg`, `tomllib` (stdlib, Python 3.11+) are available; `unshare` exists; `bwrap`, `docker`, `podman`, `nsjail`, `firejail` are **not** installed here, so no sandbox tier below has been tried.
+**Status: ACCEPTED (D-010, 2026-10-18; owner delegated the answers). Design only: nothing here is implemented or tested.** No adapter that runs user code, commands, or network calls may be written until the owner has reviewed this document and its open questions (end of file). Environment facts checked in session 4 (Linux 6.18, container, uid 0): `resource`, `os.killpg`, `tomllib` (stdlib, Python 3.11+) are available; `unshare` exists; `bwrap`, `docker`, `podman`, `nsjail`, `firejail` are **not** installed here, so no sandbox tier below has been tried.
 
 ## 1. Problem
 Today only built-in demo runners exist. A real adapter would start the user's agent (a command or an HTTP endpoint) and feed it recorded inputs. The agent is untrusted-ish: buggy, nondeterministic, possibly compromised, and its output can be hostile. The tool itself must not become a way to run attacker-controlled code on the user's machine (D-004).
@@ -60,3 +60,9 @@ Protecting against a kernel exploit, hardware side channels, or a malicious *use
 2. May Tier B depend on an external tool (bubblewrap/Docker)? Which one is acceptable on your machines?
 3. Linux/macOS only at first (no Windows adapters)?
 4. Default limits: 30 s timeout, 1 MB stdout, 512 MB address space: OK?
+
+### Answers (2026-10-18, accepted via D-010; owner may override)
+1. **Tier A first: yes, as "trusted code only".** The CLI and docs must say so, and an `agentproof.toml` adapter entry is refused unless it carries an explicit trust acknowledgement key. Tier A must never be described as a sandbox. Tier B follows as a separate milestone.
+2. **Tier B target: bubblewrap** (unprivileged, no daemon, small). It is an optional external tool, never a Python dependency; if it is missing the run is refused (fail closed). Docker/podman may be added later under the same rule. Each promised property needs its own integration test, and none can be claimed until bubblewrap is available and tested (not installed in the dev environment so far).
+3. **Platforms: Linux implemented and tested first.** macOS only after tests run on macOS (RLIMIT_AS is unreliable there). Windows: refuse, do not degrade.
+4. **Limits: 30 s timeout, 1 MB stdout, 512 MB address space kept as defaults.** Overridable per adapter in config up to the hard maxima (timeout 300 s); RLIMIT_AS may need raising for Node/JVM agents, which must be documented.

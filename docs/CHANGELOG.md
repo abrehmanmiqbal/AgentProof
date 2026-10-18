@@ -19,3 +19,4 @@ User-visible changes are recorded here. This project has not had a software rele
 - Added docs/THREAT_MODEL.md and docs/ADAPTER_ISOLATION.md (design proposal D-010; no adapter code exists).
 - Documentation: README now documents the case format, all operators and limits, every CLI command with exit codes. Added `examples/` (three sample cases and `run_example.sh`, a runnable offline walk-through); tests keep the examples valid.
 - Added `scripts/fuzz_regex_safety.py` (manual ReDoS fuzz/timing tool, not part of CI).
+- Added LICENSE (MIT, D-011) and CONTRIBUTING.md. D-010 (adapter isolation) accepted with the owner-delegated answers; still design only, no adapter code exists. Docs only: no code or test changes; tests were not run in this session (pip blocked).

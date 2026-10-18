@@ -7,8 +7,8 @@
 1. Read AGENTS.md and docs/ first; verify the repo rather than trusting notes.
 2. `python -m pip install -e ".[dev]" && ruff check . && pytest && agentproof demo` before and after changes.
 3. Test-first; record exact commands/results; never fabricate evidence; say what is NOT verified.
-4. Traces/cases are untrusted data. **Do NOT write any adapter that executes commands/code or makes network calls until the owner has accepted D-010 (docs/ADAPTER_ISOLATION.md) and answered its four open questions.**
-5. Do not publish, spend money, choose a LICENSE, or commit secrets. Push tokens are used inline in one `git push` command only (never saved or printed).
+4. Traces/cases are untrusted data. Adapters that execute commands/code must follow the accepted D-010 (docs/ADAPTER_ISOLATION.md) exactly, test-first, Linux only, Tier A labelled trusted-code-only. No network calls or command execution outside that design.
+5. Do not publish, spend money, or commit secrets. (LICENSE is MIT, D-011.) Push tokens are used inline in one `git push` command only (never saved or printed).
 
 ## Known issues / design notes
 - Dot-path syntax cannot address keys that contain "." (no escaping yet).
@@ -18,9 +18,11 @@
 - Regex validation is an estimate-based mitigation, not a proof (D-009); it uses private `re._parser` (fails closed).
 - Piping CLI output into `head` prints a `BrokenPipeError` traceback (cosmetic, unfixed).
 - Python 3.11 is verified only through GitHub CI, not locally.
-- **No LICENSE file: waiting for the owner to choose one.**
+- GitHub access: repo must be attached in the session via add_repo (owner linked GitHub in claude.ai/code); the repo moved to the lowercase name `abrehmanmiqbal/agentproof`.
 
 ## Next concrete tasks (in order)
-1. **Owner decisions needed:** (a) which LICENSE (MIT / Apache-2.0 / other) — then add the file; (b) review docs/ADAPTER_ISOLATION.md and answer its 4 questions, then mark D-010 Accepted.
-2. Without waiting on the owner: DB migration v2 with run-metadata columns (design step 1 in ADAPTER_ISOLATION.md §8) — also gives the first real v1 -> v2 migration test; or secret-redaction of stored outputs (THREAT_MODEL #8); or CONTRIBUTING.md.
-3. After D-010 is accepted: `agentproof.toml` loader, hostile test agent, Tier A subprocess adapter (test-first, Linux only).
+0. Step 0 first: the environment in sessions 5-6 could not `pip install` (pypi.org DNS/proxy). Re-test with `pip download pydantic`. If it still fails, do NOT write code you cannot test. Also record the CI results (2c2affd, 5c2bd95 and 7d02442 were observed success via API in session 6; 1e71429 was still running) in TEST_EVIDENCE.md and re-run `ruff check . && pytest && agentproof demo`.
+1. DB migration v2 with run-metadata columns (ADAPTER_ISOLATION.md section 8 step 1; also the first real v1 -> v2 migration test).
+2. Secret redaction of stored outputs (THREAT_MODEL #8).
+3. `agentproof.toml` loader (stdlib tomllib, trust acknowledgement key required), hostile test agent, Tier A subprocess adapter (test-first, Linux only). D-010 is accepted, but NOTHING in it is implemented or tested yet.
+4. Later: Tier B with bubblewrap (needs bwrap installed to test; claim nothing untested).

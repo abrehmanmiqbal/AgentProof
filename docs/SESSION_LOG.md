@@ -23,3 +23,4 @@
 - Blocker 1: `pip download pydantic` fails with "Name or service not known" (pypi.org is in the proxy NO_PROXY list, so pip connects directly and DNS does not resolve; session 5 saw a proxy 403). No dependencies could be installed, so pytest and `agentproof demo` could NOT be run.
 - Blocker 2: GitHub API call with the owner token answered "GitHub access to this repository is not enabled for this session"; `add_repo` with access "push" answered "link your GitHub account". CI status and pushing are not possible. Anonymous `git clone` / `git ls-remote` work.
 - Not worked around (no mirrors, proxy and TLS settings untouched). No code written, because it could not be tested.
+- Session 6 (later): owner linked GitHub, repo attached, docs commit pushed (1e71429, `git ls-remote` == HEAD). Owner delegated decisions: LICENSE = MIT (D-011), D-010 accepted with answers. Added LICENSE and CONTRIBUTING.md. Still no code: pip remained blocked, so no tests could be run.

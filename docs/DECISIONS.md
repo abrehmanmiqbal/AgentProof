@@ -47,7 +47,13 @@
 **Limits / trade-offs:** Not a proof. The cost model is an estimate; it rejects some legitimate patterns (e.g. `\w+@\w+\.\w+`, `(foo|bar)+`). The "max 1 unbounded repeat" rule is redundant with the cost cap (mutation check showed tests pass without it); kept as an explicit defense. Parsing uses `re._parser`/`re._constants` (private, present in 3.11 and 3.12); if unavailable, regex is rejected entirely. A hard guarantee would need a linear-time engine (e.g. RE2) or a killable worker process; revisit with the adapter-isolation work.
 
 ## D-010: Adapter isolation design
-**Status:** PROPOSED (design only, awaiting owner review; no adapter code may be written until accepted). Full text: [ADAPTER_ISOLATION.md](ADAPTER_ISOLATION.md). (HANDOFF previously called this "D-008"; D-008 is the persistence decision.)  
+**Status:** ACCEPTED 2026-10-18 (owner delegated the answers to the agent in chat: "jo best approach ho woh karo"; the owner may override any answer below). Full text: [ADAPTER_ISOLATION.md](ADAPTER_ISOLATION.md). (HANDOFF previously called this "D-008"; D-008 is the persistence decision.)  
 **Decision (summary):** Adapters run user agents only as separate processes (argv list, no shell, absolute allow-listed executable with recorded SHA-256, empty env + named allow-list, temp cwd, wall-clock timeout with process-group kill, byte caps on stdout/stderr, POSIX rlimits) or as allow-listed HTTP endpoints (SSRF guard, no redirects, size caps). Commands/URLs come only from a local user-authored config, never from case files or traces; adapters are off by default; failures become recorded failed results; missing protections fail closed. Tier A (these guard rails) does **not** restrict filesystem/network access of the child; Tier B (bubblewrap/nsjail/container) does but needs an external tool.  
 **Reason:** D-004 (traces are data) and D-007 (runner failures are results). The design is honest about what a plain subprocess cannot prevent.  
-**Open:** four owner questions at the end of ADAPTER_ISOLATION.md.
+**Answers (see ADAPTER_ISOLATION.md section 10):** (1) Tier A ships first, labelled trusted-code-only, and a config entry must carry an explicit trust acknowledgement; (2) Tier B targets bubblewrap (optional external tool, never a Python dependency; Docker/podman only later, same fail-closed rule); (3) Linux implemented and tested first, macOS only after it is tested there, Windows refuses; (4) defaults 30 s / 1 MB / 512 MB kept, overridable per adapter up to the hard maxima.  
+**Note:** acceptance does not mean implemented: nothing in D-010 is built or tested yet.
+
+## D-011: License = MIT
+**Status:** ACCEPTED 2026-10-18 (owner delegated the choice).  
+**Decision:** MIT, "Copyright (c) 2026 AgentProof contributors".  
+**Reason:** maximum adoption, shortest text, exactly reproducible. Apache-2.0 (explicit patent grant) was the alternative; its official text could not be fetched in the session (apache.org blocked by the egress proxy) and is not reproduced from memory. Switching before the first release or outside contributions is cheap; after contributions it needs contributor consent.

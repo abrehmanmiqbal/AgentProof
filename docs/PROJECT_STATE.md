@@ -8,7 +8,7 @@ _Last updated: 2026-10-18 (session 4). Everything below marked "verified" was ex
 - Implemented and tested: typed models; provider-neutral runner protocol + deterministic offline runners (`local`, `local-legacy`); assertion engine (equals/not_equals/contains/exists/gt/lt/regex; regex is restricted, see D-009; dot paths, list indices, type-strict bool/int equality); regression engine (runner exceptions and non-dict output become failed results, never crashes); SQLite persistence (versioned migrations, case content hashes, size limits, parameterized SQL, cascade delete); assertion-level before/after comparison (`improved` / `regressed` / `unchanged`); CLI: `demo`, `case add|list|show`, `run`, `runs`, `compare`, `report` (exit 1 on regression), `case delete --yes`, `run-all [--repeat N]`, `report --output/--force`, `run --repeat N`; Markdown/JSON report rendering (`report.py`).
 - Docs: README has full CLI/operator/limits documentation; `examples/` exists (tests keep it valid).
 - Docs: THREAT_MODEL.md; ADAPTER_ISOLATION.md (D-010, proposed, design only).
-- NOT implemented: HTTP API, UI, report file export / HTML reports, trace import/capture, real-agent adapters (subprocess/HTTP), JSON-schema assertions, CHANGELOG-level release docs, LICENSE, CONTRIBUTING, threat-model doc.
+- NOT implemented: HTTP API, UI, report file export / HTML reports, trace import/capture, real-agent adapters (subprocess/HTTP), JSON-schema assertions, CHANGELOG-level release docs. (LICENSE = MIT and CONTRIBUTING.md added 2026-10-18; threat-model doc exists.)
 
 ## Commits
 Session 2 work was pushed to GitHub `main` in session 3 (remote head verified with `git ls-remote`: d5b6852 -> e9e4ac4). Session 3 added the `report` command on top.
