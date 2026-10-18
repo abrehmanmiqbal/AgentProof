@@ -28,3 +28,4 @@
 ## 2026-10-18 (session 7)
 - Pip works again. Step 0 done: CI green for the 8 newest runs (run level), baseline re-verified locally on Python 3.13.16: 142 tests, ruff clean, demo and example script OK.
 - Task 1: DB migration v2 with run metadata (`RunMetadata`), atomic migrations, negative-version guard, real v1 -> v2 tests with mutation checks; tests 142 -> 161.
+- Task 2: best-effort secret redaction (`redaction.py`): env-name values, known token formats, secret-named assignments/keys, URL passwords, PEM; one chokepoint in `Repository.record_run`; hostile-input and ReDoS-timing tests; CLI prints the stored (redacted) result. tests 161 -> 227. Limits documented honestly.

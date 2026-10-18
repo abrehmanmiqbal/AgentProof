@@ -77,3 +77,8 @@ Task 1: DB migration v2 + run metadata (test-first):
 8. Mutation checks (break code, confirm a test fails, restore): removing the negative-version guard -> `test_negative_user_version_is_refused_not_misapplied` failed; moving the bump after COMMIT -> **survived at first** (my rollback test did not cover it), so I added `test_version_bump_happens_inside_the_migration_transaction` (SQLite trace: BEGIN < bump < COMMIT); the mutation is then caught; disabling metadata validation on read -> 6 tampered-metadata tests failed. After each, code restored: `pytest` **161 passed**.
 9. Test-bug notes: my first `RunMetadata` test passed `adapter_tier` twice (TypeError), and the trace test compared "BEGIN" to the traced "BEGIN;" (StopIteration); both were mistakes in the tests, not the code, and were fixed in the tests.
 NOT verified: migration of a large v1 database (only 1 case / 2 runs used); concurrent opening of a v1 file by two processes while it migrates.
+
+Task 2: secret redaction (session 7, continued):
+10. `ruff check .` initially reported 1 finding (RUF007: `zip(parts, parts[1:])`); replaced with `itertools.pairwise`; then `ruff check .`: All checks passed; `pytest`: **227 passed in 2.49s** (Python 3.13.16, ruff 0.17.1).
+11. Mutation checks on `redaction.py` (break, run `pytest -x`, restore): skip env-secret replacement, drop token regex, drop URL-password regex, drop sensitive-key forcing, env min length 8 -> 1, disable depth guard: each made **1 test fail**; file restored, 227 passed. (The depth-guard mutant took 74 s to fail.)
+NOT verified: CI for the commit containing redaction (checked after push, see below); redaction against real provider output formats beyond the patterns tested; Python 3.11/3.12 locally.

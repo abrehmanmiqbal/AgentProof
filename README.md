@@ -107,7 +107,7 @@ A runner result larger than 1,000,000 bytes is not lost: it is recorded as a fai
 
 ## Security principles
 
-Recorded inputs, traces, and case files are data, not code. AgentProof must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for what is and is not mitigated (notably: stored outputs are not redacted). AgentProof is released under the [MIT License](LICENSE) (D-011); see [CONTRIBUTING.md](CONTRIBUTING.md).
+Recorded inputs, traces, and case files are data, not code. AgentProof must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for what is and is not mitigated (notably: stored outputs get best-effort secret redaction only, which is not a guarantee). AgentProof is released under the [MIT License](LICENSE) (D-011); see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development
 

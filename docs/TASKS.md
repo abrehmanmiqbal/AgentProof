@@ -43,9 +43,9 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 ## Milestone 5 — Security and robustness
 - [x] Case files: size cap (1,000,000 bytes), JSON-only parse, typed validation, `extra=forbid`; hostile/malformed/deep-nesting/invalid-UTF-8 probes rejected cleanly.
 - [x] Regex safety (ReDoS): validation at case load, text cap, cost model, fuzzed (D-009). Assertion count capped at 100.
-- [ ] Redact secrets in stored outputs; limit assertion depth/path length.
+- [x] Best-effort secret redaction of stored results and run metadata (src/agentproof/redaction.py; limits documented, NOT a guarantee). [ ] Limit assertion depth/path length.
 - [x] Isolation design written: docs/ADAPTER_ISOLATION.md + D-010 (status PROPOSED; design only, nothing implemented/tested). [x] D-010 accepted 2026-10-18 (owner delegated answers); adapter code may now be written test-first, Linux only.
-- [x] Threat model doc: docs/THREAT_MODEL.md (honest status per threat; secrets redaction still NOT mitigated).
+- [x] Threat model doc: docs/THREAT_MODEL.md (honest status per threat; secrets redaction is best-effort only).
 
 ## Milestone 6 — Release preparation
 - [x] Ruff added to dev extras and CI (verified locally only).

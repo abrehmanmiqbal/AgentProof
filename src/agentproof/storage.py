@@ -19,6 +19,7 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from .models import RegressionCase, RegressionResult, RunMetadata
+from .redaction import Redactor
 
 MAX_JSON_BYTES = 1_000_000  # per stored case or result
 MAX_LABEL_LENGTH = 64
@@ -163,7 +164,10 @@ def _columns_to_metadata(run_id: int, cols: tuple) -> RunMetadata | None:
 
 
 class Repository:
-    def __init__(self, path: str | Path = ":memory:") -> None:
+    def __init__(self, path: str | Path = ":memory:", *, redactor: Redactor | None = None) -> None:
+        # ``None`` means: build a Redactor from the live environment at each record_run, so
+        # secrets exported after the Repository was opened are still caught.
+        self._redactor = redactor
         try:
             self._conn = sqlite3.connect(str(path))
             self._conn.execute("PRAGMA foreign_keys = ON")
@@ -268,6 +272,21 @@ class Repository:
             raise StorageError(f"label must be 1-{MAX_LABEL_LENGTH} characters")
         if result.case_id != case.case_id:
             raise StorageError("result.case_id does not match case.case_id")
+        # Single chokepoint: nothing reaches the database without best-effort redaction
+        # (see redaction.py for what it does and does not catch; THREAT_MODEL #8).
+        redactor = self._redactor or Redactor.from_environ()
+        result = redactor.result(result)
+        if metadata is not None:
+            metadata = metadata.model_copy(
+                update={
+                    "argv": redactor.argv(metadata.argv),
+                    "executable_path": (
+                        redactor.text(metadata.executable_path)
+                        if metadata.executable_path is not None
+                        else None
+                    ),
+                }
+            )
         payload = _canonical_json(result)
         _check_size(payload, "result")
         if not self._conn.execute(

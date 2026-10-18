@@ -1,6 +1,6 @@
 # Project State
 
-_Last updated: 2026-10-18 (session 4). Everything below marked "verified" was executed in this session; see TEST_EVIDENCE.md for exact commands/output._
+_Last updated: 2026-10-18 (session 7: schema v2 and secret redaction added; 227 tests on Python 3.13.16; the rest of this file still describes session 4). Everything below marked "verified" was executed in this session; see TEST_EVIDENCE.md for exact commands/output._
 
 ## Verified status
 - Repository: abrehmanmiqbal/AgentProof. Local clone built and tested on **Python 3.12.3 / Linux** only. Python 3.11 is not available locally; it is verified **only by GitHub CI**, which was observed passing (3.11 + 3.12) on 161104d in session 4 (via API).

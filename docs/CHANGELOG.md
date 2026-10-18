@@ -3,6 +3,8 @@
 User-visible changes are recorded here. This project has not had a software release yet.
 
 ## Unreleased
+- Added: best-effort secret redaction of everything stored in run history (outputs, errors, assertion values, adapter metadata); the CLI now prints the stored (redacted) result. Not a guarantee, see docs/THREAT_MODEL.md #8.
+- Added: DB schema v2 (nullable run-metadata columns for future adapters), atomic migrations.
 - Added AGENTS.md with operating rules, security guardrails, memory-file requirements, and truthful completion reporting.
 - Added initial project planning and architecture memory documents.
 - Added the first Python core: typed models, deterministic offline runner, assertion evaluation, regression engine, and demo CLI.

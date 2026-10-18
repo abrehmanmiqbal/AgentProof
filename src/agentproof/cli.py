@@ -99,7 +99,8 @@ def _run_repeated(repo: Repository, case: RegressionCase, runner_name: str, labe
                 error=f"Result exceeds {MAX_JSON_BYTES} bytes; output was not stored",
             )
             run_ids.append(repo.record_run(case, result, label=label, runner_name=runner_name))
-        results.append(result)
+        # Use what was actually stored (redacted), so nothing printed differs from the record.
+        results.append(repo.get_run(run_ids[-1]).result)
     return results, run_ids
 
 
