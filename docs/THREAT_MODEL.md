@@ -21,7 +21,7 @@ Trusted: the person running the CLI (they choose file paths, `--db`, `--output`)
 | # | Threat | Status | Mitigation / evidence | Gap |
 |---|---|---|---|---|
 | 1 | Oversized, malformed, deeply nested, or non-UTF-8 case file | Mitigated | 1,000,000-byte read cap, JSON-only parse, typed models with `extra=forbid`, 100-assertion cap; hostile probes exit 2 cleanly (TEST_EVIDENCE s2 #9) | No limit on path length or on `input`/`expected` nesting beyond Python's recursion limit (which is caught) |
-| 2 | Code execution through a case/trace | Mitigated by construction | No `eval`/`exec`/`subprocess`/`pickle`/dynamic import in `src/` (grep, session 4); case data is only parsed as JSON | Any future adapter breaks this assumption: D-010 |
+| 2 | Code execution through a case/trace | Mitigated by construction | No `eval`/`exec`/`subprocess`/`pickle`/dynamic import in `src/` (grep, session 4); case data is only parsed as JSON | `src/agentproof/subprocess_adapter.py` (Tier A, D-012) is the ONLY place that starts a process (`shell=False`, argv from the validated local config, never from case data); it exists but is not reachable from the CLI yet. It is not a sandbox: the child can read your files and use the network (tests assert this on purpose) |
 | 3 | ReDoS via `regex` assertions | Partially mitigated | Static validation + 200-char / 5,000-char caps (D-009); fuzz: slowest accepted 0.73-0.81 s, no 30 s timeouts | Estimate, not proof; no hard timeout possible in-process; worst case per assertion is about 1 s x up to 100 assertions per case |
 | 4 | Report/Markdown injection (pipes, newlines, HTML, huge values) | Mitigated for Markdown/JSON | Values length-limited, whitespace-collapsed, HTML-entity escaped; golden-file + injection tests | HTML reports do not exist; if added, re-assess |
 | 5 | SQL injection | Mitigated | All user data bound as parameters; the only f-strings in SQL interpolate internal constants; injection-like ids tested | None known |
@@ -35,7 +35,7 @@ Trusted: the person running the CLI (they choose file paths, `--db`, `--output`)
 | 13 | Terminal noise: `BrokenPipeError` traceback when output is piped into `head` | Known, cosmetic | Observed in session 3 | Not fixed |
 
 ## Future threats (not yet applicable)
-- Adapters executing user commands/code or calling HTTP endpoints (sandbox escape, resource exhaustion, SSRF, env/secret leakage, output injection). Required before any such adapter: the isolation design in D-010.
+- Adapters executing user commands/code or calling HTTP endpoints (sandbox escape, resource exhaustion, SSRF, env/secret leakage, output injection). Tier A subprocess adapter: built and tested against a hostile agent for hangs, floods, orphan children, env leakage, bad output and limits (see TEST_EVIDENCE); NOT covered: filesystem/network access of the child, setsid escapes, a file swapped between hash check and launch, RLIMIT_NPROC as root. HTTP adapter (SSRF) and Tier B: not built.
 - HTTP API: authentication, CSRF, local-only bind, request size limits.
 - Trace import: untrusted large/nested files; prompt-injection text inside traces is data and must never be executed or fed to tools.
 
