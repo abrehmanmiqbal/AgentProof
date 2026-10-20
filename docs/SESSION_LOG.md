@@ -31,3 +31,6 @@
 - Task 2: best-effort secret redaction (`redaction.py`): env-name values, known token formats, secret-named assignments/keys, URL passwords, PEM; one chokepoint in `Repository.record_run`; hostile-input and ReDoS-timing tests; CLI prints the stored (redacted) result. tests 161 -> 227. Limits documented honestly.
 - Task 3a: `agentproof.toml` loader (`config.py`), test-first (collection error first, then 79 tests green; 306 total). Parse/validate only. Mutation checks: 8 of 10 caught at first; tier-B message mutant caught after tightening the test; the file-size pre-check mutant is equivalent (the post-read cap still refuses) and was left.
 - Task 3b: hostile test agent (`tests/hostile_agent.py`, ~30 modes) and Tier A adapter (`subprocess_adapter.py`), tests written first (collection error), then 50 adapter tests green; 356 total. 20 mutation checks run; see TEST_EVIDENCE for survivors. D-012 records refinements. Adapter is not wired into the CLI yet.
+
+## 2026-10-20 (session 8)
+- Found main had moved (sessions 5-7) and CI was red. Added CI failure annotations, reproduced locally with a group-writable interpreter (44 failed), fixed the test helper, CI green on 8a3e726. Installed Python 3.11 locally via uv: 359 passed.

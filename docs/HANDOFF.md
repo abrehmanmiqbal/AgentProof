@@ -1,5 +1,11 @@
 # Handoff — Read This First
 
+## LATEST (session 8, 2026-10-20) — read this first
+- **CI is green again:** commit 8a3e726, jobs `test (3.11)` and `test (3.12)` both success (checked via API). Root cause of the earlier red CI (b91c26e, 20d77b5, be24649): `tests/test_subprocess_adapter.py::_pick_agent_python` chose GitHub's group-writable toolcache interpreter, which the adapter correctly refuses (44 tests failed). Fixed in the test helper only; the security check is unchanged. Details: TEST_EVIDENCE.md #21-24.
+- CI logs cannot be read from the agent sandbox. The workflow now emits pytest failures as `::error::` annotations; read them with `GET /repos/OWNER/REPO/check-runs/<job_id>/annotations`.
+- Python 3.11 is installable locally: `pip install uv && uv python install 3.11` (suite: 359 passed on 3.11.15).
+- 359 tests, ruff clean. D-010/D-011 (MIT)/D-012 were accepted in earlier sessions under the owner's chat delegation ("jo best approach ho woh karo"); the owner may override any of them.
+
 ## State (end of session 7, 2026-10-18)
 Session 7 added: DB schema v2 + `RunMetadata` (pushed, 5a3ac08) and best-effort secret redaction (`src/agentproof/redaction.py`, wired into `Repository.record_run`; 227 tests, ruff clean on Python 3.13.16; 6 mutations caught). Items 0-2 below are DONE; item 3 is DONE: `src/agentproof/config.py` loader (79 tests) and `src/agentproof/subprocess_adapter.py` Tier A adapter with `tests/hostile_agent.py` + `tests/test_subprocess_adapter.py` (50 tests; 356 total). Design refinements are in D-012. NEXT: CLI wiring (`--config PATH --adapter NAME`, explicit config path only, record `RunMetadata` via `record_run(metadata=...)`, README section 'what Tier A does NOT protect against', exit 2 on ConfigError, refuse adapters on non-Linux). The text in the next paragraph describes session 4 and is older.
 
