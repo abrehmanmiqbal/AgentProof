@@ -25,9 +25,16 @@ from agentproof.subprocess_adapter import AdapterError, SubprocessAdapter
 def _pick_agent_python() -> str | None:
     """An interpreter that starts with an EMPTY environment. A Python built with a shared
     libpython (e.g. GitHub's setup-python) needs LD_LIBRARY_PATH to start at all, so it cannot
-    play the hostile agent here; a system Python usually can."""
+    play the hostile agent here; a system Python usually can. The adapter (rightly) refuses an
+    executable that is group/world writable, and GitHub's hosted toolcache Python is exactly
+    that (mode 775), so such an interpreter cannot play the agent either."""
     for candidate in (sys.executable, "/usr/bin/python3"):
         real = os.path.realpath(candidate)
+        try:
+            if os.stat(real).st_mode & 0o022:
+                continue
+        except OSError:
+            continue
         try:
             done = subprocess.run(
                 [real, "-c", "pass"], check=False, env={}, capture_output=True, timeout=20
