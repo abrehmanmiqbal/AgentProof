@@ -112,3 +112,4 @@ NOT verified until CI reports: that this was the real cause of the CI failure. *
 27. Mutation checks on cli.py: dropping `metadata=` from `record_run` -> 3 failed; allowing `--adapter` with `--runner` -> 1 failed; implicit `agentproof.toml` discovery -> 2 failed; restored, 370 passed.
 28. Black-box (installed `agentproof`, throwaway DB in /tmp, real stdin/stdout agent script, README snippet config): `run --adapter my-agent --config agentproof.toml` exit 0, run recorded with runner `adapter:my-agent`; same command without `--config` exit 2 with a clear message.
 NOT verified (session 8): CI for the commit containing the CLI wiring (check after push, below); Tier B; HTTP adapter; non-root behaviour beyond what CI's `runner` user exercised; macOS/Windows.
+29. CI on 627a2ee (CLI wiring): GitHub API -> run completed/success (run-level conclusion; per-job results not separately inspected this time).
