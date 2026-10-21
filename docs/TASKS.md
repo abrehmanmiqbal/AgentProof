@@ -51,7 +51,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 ## Milestone 6 — Release preparation
 - [x] Ruff added to dev extras and CI (verified locally only).
 - [x] LICENSE (MIT, D-011), CONTRIBUTING.md (session 6, docs only). ~~examples/ dir, README CLI docs~~ (done, session 4).
-- [ ] Clean-install verification from docs on 3.11 and 3.12.
+- [x] Clean-install verification on 3.11 and 3.12 (fresh clone, editable and wheel installs; session 8, TEST_EVIDENCE #30-33).
 
 ## Milestone 7 — Distribution readiness
-- [ ] Naming/branding availability check; clean-install verification; release notes. Do not publish without authorization.
+- [x] PyPI/GitHub name check done: **`agentproof` is taken on PyPI** (D-013 OPEN, owner decision). [ ] Release notes. Do not publish without authorization.

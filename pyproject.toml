@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,11 +7,27 @@ name = "agentproof"
 version = "0.1.0"
 description = "Free-first, offline-capable regression testing for AI agents"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["ai-agents", "regression-testing", "testing", "llm", "offline"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+]
 requires-python = ">=3.11"
 dependencies = ["pydantic>=2.6,<3"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<9", "ruff>=0.4"]
+
+[project.urls]
+Repository = "https://github.com/abrehmanmiqbal/AgentProof"
+Documentation = "https://github.com/abrehmanmiqbal/AgentProof/tree/main/docs"
 
 [project.scripts]
 agentproof = "agentproof.cli:main"

@@ -1,0 +1,47 @@
+"""Release hygiene: package metadata must match the code and the CI matrix."""
+import tomllib
+from pathlib import Path
+
+import agentproof
+
+ROOT = Path(__file__).resolve().parent.parent
+PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+META = PROJECT["project"]
+
+
+def test_version_matches_the_package():
+    assert META["version"] == agentproof.__version__
+
+
+def test_license_is_declared_and_shipped():
+    assert META["license"] == "MIT"
+    assert META["license-files"] == ["LICENSE"]
+    assert (ROOT / "LICENSE").read_text(encoding="utf-8").startswith("MIT License")
+    # the SPDX `license` expression needs setuptools >= 77
+    assert any(r.replace(" ", "").startswith("setuptools>=77") for r in PROJECT["build-system"]["requires"])
+
+
+def test_classifiers_cover_the_ci_matrix():
+    classifiers = set(META["classifiers"])
+    workflow = (ROOT / ".github" / "workflows" / "tests.yml").read_text(encoding="utf-8")
+    for version in ("3.11", "3.12"):
+        assert f'"{version}"' in workflow  # still in the CI matrix
+        assert f"Programming Language :: Python :: {version}" in classifiers
+    assert "Development Status :: 3 - Alpha" in classifiers
+    assert META["requires-python"] == ">=3.11"
+
+
+def test_project_urls_point_at_the_repository():
+    assert META["urls"]["Repository"] == "https://github.com/abrehmanmiqbal/AgentProof"
+    assert META["urls"]["Documentation"].startswith(META["urls"]["Repository"])
+
+
+def test_no_claims_we_cannot_back():
+    classifiers = " ".join(META["classifiers"])
+    assert "Typing :: Typed" not in classifiers  # no py.typed marker is shipped
+    assert "Operating System :: OS Independent" not in classifiers  # only tested on Linux
+
+
+def test_readme_warns_that_the_pypi_name_belongs_to_another_project():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "pip install agentproof" in readme and "different project" in readme

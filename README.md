@@ -10,7 +10,7 @@ Early development. Implemented and tested locally and in CI (Python 3.11 and 3.1
 
 ## Install
 
-Requires Python 3.11 or newer.
+Requires Python 3.11 or newer. AgentProof is **not published on PyPI**: install from a clone of this repository. **Do not run `pip install agentproof`**: that name on PyPI is a different project by someone else (see [D-013](docs/DECISIONS.md)).
 
 ```bash
 python -m venv .venv
