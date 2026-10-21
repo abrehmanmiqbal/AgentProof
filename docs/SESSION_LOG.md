@@ -34,3 +34,4 @@
 
 ## 2026-10-20 (session 8)
 - Found main had moved (sessions 5-7) and CI was red. Added CI failure annotations, reproduced locally with a group-writable interpreter (44 failed), fixed the test helper, CI green on 8a3e726. Installed Python 3.11 locally via uv: 359 passed.
+- CLI wiring for subprocess adapters (`--adapter/--config`), README section, 11 tests, mutation-checked; tests 359 -> 370.

@@ -9,17 +9,20 @@ import argparse
 import json
 import os
 import sys
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 from pydantic import ValidationError
 
 from .comparison import Verdict, compare_runs
+from .config import ConfigError, load_config
 from .models import AssertionOperator, AssertionSpec, RegressionCase, RegressionResult
 from .regression import RegressionEngine
 from .report import render_json, render_markdown
 from .runner import RUNNERS, DeterministicLocalRunner
 from .storage import MAX_JSON_BYTES, PayloadTooLargeError, Repository, StorageError
+from .subprocess_adapter import SubprocessAdapter
 
 DEFAULT_DB = "agentproof.db"
 MAX_REPEAT = 20
@@ -84,13 +87,64 @@ def _outcome_signature(result) -> tuple:
     )
 
 
-def _run_repeated(repo: Repository, case: RegressionCase, runner_name: str, label: str, repeat: int):
+def _resolve_runner(args: argparse.Namespace) -> tuple[str, Callable[[], Any]]:
+    """Pick the runner for ``run``/``run-all``: a demo runner, or a configured adapter.
+
+    Adapters need an explicit ``--config`` file (never discovered from the working directory, so
+    a cloned repository cannot supply commands, D-012 #8) and cannot be mixed with ``--runner``.
+    """
+    if args.adapter is None:
+        if args.config is not None:
+            raise CliError("--config is only used together with --adapter")
+        name = args.runner or "local"
+        return name, RUNNERS[name]
+    if args.runner is not None:
+        raise CliError("--adapter and --runner cannot be used together")
+    if args.config is None:
+        raise CliError("--adapter requires --config FILE (agentproof.toml is never auto-discovered)")
+    config = load_config(args.config)
+    adapter = config.adapters.get(args.adapter)
+    if adapter is None:
+        known = ", ".join(sorted(config.adapters)) or "none"
+        raise CliError(f"unknown adapter '{args.adapter}' in {args.config} (known: {known})")
+    return f"adapter:{args.adapter}", lambda: SubprocessAdapter(adapter)
+
+
+def _add_runner_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--runner",
+        choices=sorted(RUNNERS),
+        default=None,
+        help="Built-in demo runner (default: local). Not combinable with --adapter.",
+    )
+    parser.add_argument(
+        "--adapter",
+        help="Run the agent through an adapter from --config. Tier A runs the configured "
+        "command as YOU, without a sandbox: trusted code only.",
+    )
+    parser.add_argument("--config", help="agentproof.toml with [adapters.NAME] entries (explicit path).")
+
+
+def _run_repeated(
+    repo: Repository,
+    case: RegressionCase,
+    runner: tuple[str, Callable[[], Any]],
+    label: str,
+    repeat: int,
+):
     """Run ``case`` ``repeat`` times, recording every run. Returns (results, run_ids)."""
+    runner_name, factory = runner
     results, run_ids = [], []
     for _ in range(repeat):
-        result = RegressionEngine(RUNNERS[runner_name]()).run_case(case)
+        instance = factory()
+        result = RegressionEngine(instance).run_case(case)
+        metadata = getattr(instance, "last_metadata", None)  # adapters only
         try:
-            run_ids.append(repo.record_run(case, result, label=label, runner_name=runner_name))
+            run_ids.append(
+                repo.record_run(
+                    case, result, label=label, runner_name=runner_name, metadata=metadata
+                )
+            )
         except PayloadTooLargeError:
             # Runner output is untrusted: an oversized result is a failed run, not a lost one.
             result = RegressionResult(
@@ -98,7 +152,11 @@ def _run_repeated(repo: Repository, case: RegressionCase, runner_name: str, labe
                 passed=False,
                 error=f"Result exceeds {MAX_JSON_BYTES} bytes; output was not stored",
             )
-            run_ids.append(repo.record_run(case, result, label=label, runner_name=runner_name))
+            run_ids.append(
+                repo.record_run(
+                    case, result, label=label, runner_name=runner_name, metadata=metadata
+                )
+            )
         # Use what was actually stored (redacted), so nothing printed differs from the record.
         results.append(repo.get_run(run_ids[-1]).result)
     return results, run_ids
@@ -148,7 +206,7 @@ def _build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run a saved case and record the result.")
     run.add_argument("case_id")
     run.add_argument("--label", required=True)
-    run.add_argument("--runner", choices=sorted(RUNNERS), default="local")
+    _add_runner_args(run)
     run.add_argument(
         "--repeat",
         type=_repeat_count,
@@ -160,7 +218,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "run-all", help="Run every saved case and record each result (exit 1 if any fail)."
     )
     run_all.add_argument("--label", required=True)
-    run_all.add_argument("--runner", choices=sorted(RUNNERS), default="local")
+    _add_runner_args(run_all)
     run_all.add_argument(
         "--repeat",
         type=_repeat_count,
@@ -212,8 +270,9 @@ def _dispatch(args: argparse.Namespace) -> int:
             return 0
 
         if args.command == "run":
+            runner = _resolve_runner(args)
             case = repo.get_case(args.case_id)
-            results, run_ids = _run_repeated(repo, case, args.runner, args.label, args.repeat)
+            results, run_ids = _run_repeated(repo, case, runner, args.label, args.repeat)
             all_passed = all(r.passed for r in results)
             if args.repeat == 1:
                 _emit({"run_id": run_ids[0], "passed": results[0].passed, "error": results[0].error})
@@ -222,13 +281,14 @@ def _dispatch(args: argparse.Namespace) -> int:
             return 0 if all_passed else 1
 
         if args.command == "run-all":
+            runner = _resolve_runner(args)
             case_ids = repo.list_case_ids()
             if not case_ids:
                 raise CliError("No cases saved; add one with 'case add' first")
             entries, unstable, ok_cases = [], [], 0
             for case_id in case_ids:
                 case = repo.get_case(case_id)
-                results, run_ids = _run_repeated(repo, case, args.runner, args.label, args.repeat)
+                results, run_ids = _run_repeated(repo, case, runner, args.label, args.repeat)
                 case_ok = all(r.passed for r in results)
                 ok_cases += case_ok
                 if args.repeat == 1:
@@ -294,7 +354,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
         return _dispatch(args)
-    except (StorageError, CliError, ValueError) as exc:
+    except (StorageError, CliError, ConfigError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 

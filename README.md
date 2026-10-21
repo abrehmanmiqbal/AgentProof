@@ -6,7 +6,7 @@ AgentProof is built free-first: the core loop runs locally without paid APIs, cl
 
 ## Project status
 
-Early development. Implemented and tested locally and in CI (Python 3.11 and 3.12): typed models, deterministic offline runners, assertion engine, SQLite persistence, before/after comparison, Markdown/JSON reports, and the CLI below. **Not implemented yet:** HTTP API, UI, trace import, adapters for real agents (and therefore no way yet to test an actual agent; only the built-in demo runners exist), HTML reports. See [docs/TASKS.md](docs/TASKS.md) and [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
+Early development. Implemented and tested locally and in CI (Python 3.11 and 3.12): typed models, deterministic offline runners, Tier A subprocess adapters, secret redaction of stored runs, assertion engine, SQLite persistence, before/after comparison, Markdown/JSON reports, and the CLI below. **Not implemented yet:** HTTP API, UI, trace import, HTTP adapters, sandboxed (Tier B) adapters, HTML reports. Real agents can be tested through Tier A subprocess adapters (see below; **not a sandbox**). See [docs/TASKS.md](docs/TASKS.md) and [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
 
 ## Install
 
@@ -87,13 +87,31 @@ agentproof [--db FILE] <command> ...
 | `case list` | JSON list of case ids. |
 | `case show CASE_ID` | Prints the saved case. |
 | `case delete CASE_ID --yes` | Deletes the case **and all its runs**. Refuses (exit 2) without `--yes`. |
-| `run CASE_ID --label L [--runner R] [--repeat N]` | Runs the case and records it. Prints `run_id`, `passed`, `error`. With `--repeat N` (1-20) it records N runs and prints `run_ids`, `total`, `passed`, `failed`, and `stable` (true when every repeat had identical per-assertion outcomes). Exit 1 if any run failed. |
-| `run-all --label L [--runner R] [--repeat N]` | Runs and records every saved case. Exit 1 if any fail; exit 2 if there are no cases. With `--repeat N` (1-20) each case runs N times; each result gets `run_ids`, `total`, `passed`, `failed`, `stable`, and the top level adds `unstable` (case ids whose repeats differed). Top-level `passed`/`failed` count cases (a case passes only if every repeat passed). |
+| `run CASE_ID --label L [--runner R \| --adapter NAME --config FILE] [--repeat N]` | Runs the case and records it. Prints `run_id`, `passed`, `error`. With `--repeat N` (1-20) it records N runs and prints `run_ids`, `total`, `passed`, `failed`, and `stable` (true when every repeat had identical per-assertion outcomes). Exit 1 if any run failed. |
+| `run-all --label L [--runner R \| --adapter NAME --config FILE] [--repeat N]` | Runs and records every saved case. Exit 1 if any fail; exit 2 if there are no cases. With `--repeat N` (1-20) each case runs N times; each result gets `run_ids`, `total`, `passed`, `failed`, `stable`, and the top level adds `unstable` (case ids whose repeats differed). Top-level `passed`/`failed` count cases (a case passes only if every repeat passed). |
 | `runs CASE_ID` | Lists recorded runs (id, label, runner, passed, timestamp). |
 | `compare BEFORE_ID AFTER_ID` | Assertion-level diff of two runs with a verdict: `improved`, `regressed`, or `unchanged`. Exit 1 if `regressed`. |
 | `report BEFORE_ID AFTER_ID [--format markdown\|json] [--output FILE] [--force]` | Deterministic, timestamp-free report (Markdown by default) on stdout. `--output` writes a file instead and refuses to overwrite one without `--force`. Exit 1 if `regressed`. |
 
 Runners (`--runner`): `local` (default; deterministic offline demo agent) and `local-legacy` (same, but with a deliberate greeting bug so you can see a failure turn into a fix). They are demo runners, not real agents.
+
+### Running a real agent: subprocess adapters (Tier A, Linux only)
+
+`--adapter NAME --config FILE` runs the case input through a command you configured, instead of a demo runner. The config is a TOML file you write and pass **explicitly** (it is never discovered from the working directory, so a cloned repository cannot supply commands; it must not be group/world-writable):
+
+```toml
+[adapters.my-agent]
+tier = "A"
+argv = ["/usr/bin/python3", "/opt/agent/main.py"]   # absolute executable, no shell
+acknowledge_not_sandboxed = true                     # required: you accept the warning below
+timeout_seconds = 30                                 # optional (max 300)
+env_allow = ["MY_AGENT_MODEL"]                       # optional: variable NAMES passed through
+# executable_sha256 = "..."                          # optional pin of the executable
+```
+
+The agent receives the case `input` as one JSON object on stdin and must print one JSON object on stdout (exit code 0). Failures (timeout, crash, non-JSON, oversized output, non-zero exit) become **recorded failed runs**, not crashes. Each run stores reproducibility metadata (executable path and SHA-256, argv, env variable *names*, limits, exit code, duration), and stored text goes through best-effort secret redaction. `--adapter` cannot be combined with `--runner`.
+
+**Tier A is NOT a sandbox.** It limits time, output size, memory and processes and starts the agent with a clean environment, but the command runs **as you**, with your files and network. Use it only for code you would run by hand anyway. Design and limits: [docs/ADAPTER_ISOLATION.md](docs/ADAPTER_ISOLATION.md).
 
 ### Exit codes
 
