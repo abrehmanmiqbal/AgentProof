@@ -1,0 +1,11 @@
+{
+  "trace_id": "greet-ava-trace",
+  "input": {
+    "action": "greet",
+    "name": "Ava"
+  },
+  "output": {
+    "message": "Hello, Ava!",
+    "action": "greet"
+  }
+}

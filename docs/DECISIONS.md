@@ -68,3 +68,9 @@
 **Facts observed:** PyPI `agentproof` already exists (0.1.0, "pytest-based behavioral testing framework for AI agents", github.com/praxiumlabs/agentproof): same space, so publishing under this name is impossible and would confuse users. GitHub search finds 151 repositories with "agentproof" in the name (e.g. NordicAgents/AgentProof, jayblast-spec/agentproof). PyPI treats `agent-proof` as a different name (404), but it is confusingly close and not recommended.  
 **PyPI-free names found (PyPI only; GitHub, domain and trademark NOT checked):** `agentdiff`, `agentbaseline`, `agentregression`, `regressagent`, `agentreg`. Taken: `agentregress`, `agentcheck`, `replaykit`.  
 **Needed from the owner:** keep the name for GitHub-only use, or rename (then: package, CLI command, env var `AGENTPROOF_DB`, docs, repo URL). Do not publish before this is decided.
+
+## D-014: Trace v1 and `case from-trace`
+**Status:** ACCEPTED (session 8, agent decision under the owner's delegation; owner may override).  
+**Decision:** Minimal trace format `{trace_id, input, output}` (objects only, extra fields forbidden, 1 MB, depth 32, strict JSON). `case from-trace` generates `equals` assertions for scalar leaves of `output` (or explicit `--path`s), never copies secret-looking values (uses `redaction.Redactor`), refuses secret-looking `input`, skips unaddressable/too-long items with notes on stderr, and by default only prints the case so a human reviews it. No DB change (raw-trace persistence needs schema v3 and is a later task).  
+**Reason:** delivers the "capture a behavior, turn it into a regression case" promise with the smallest safe surface; D-004 (data, not code).  
+**Limits:** auto-generated equals assertions are brittle by design; multi-step traces (tool calls) and framework importers are not supported yet.

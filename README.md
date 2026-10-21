@@ -53,6 +53,18 @@ A case is one JSON file: an input for the agent plus the assertions its structur
 
 Limits (all enforced when the file is loaded; unknown fields are rejected): file <= 1,000,000 bytes; `case_id` 1-128 chars; `name` 1-256 chars; 1-100 assertions. Case files are parsed as JSON only and are never executed. More samples are in [`examples/cases/`](examples/cases/).
 
+### Capturing a trace into a case
+
+A trace is one JSON file recording something your agent actually did: `{"trace_id": "...", "input": {...}, "output": {...}}` (unknown fields are rejected; max 1,000,000 bytes, nesting depth 32, no NaN/Infinity). Traces are data and are never executed.
+
+```bash
+agentproof case from-trace examples/traces/greet-ava.json            # review the generated case
+agentproof case from-trace examples/traces/greet-ava.json --save     # or save it directly
+agentproof case from-trace trace.json --path message --path items.0.id --save
+```
+
+By default every scalar field of `output` becomes an `equals` assertion (at most 100; otherwise choose with `--path`). **Review the result:** it pins values exactly, including ones that may legitimately vary (timestamps, ids). Fields are skipped with a `note:` on stderr when the key is empty or contains `.`, the path is over 512 characters, a string is over 1,000 characters, or the value looks like a secret (per the redaction rules; secret values are never copied into a case). A secret-looking value in the trace `input` makes the command fail.
+
 ### Paths
 
 `path` is dot-separated: `echo.tag`, or `items.0.name` for list index 0 (ASCII digits only). A key that itself contains `.` cannot be addressed yet.
@@ -84,6 +96,7 @@ agentproof [--db FILE] <command> ...
 |---|---|
 | `demo` | Runs a built-in case offline; no database needed. Exit 0 if it passes. |
 | `case add FILE [--overwrite]` | Validates and saves a case. Prints `{"saved": true, "case_hash": ...}`. Fails (exit 2) if the id exists unless `--overwrite`. |
+| `case from-trace FILE [--case-id ID] [--name N] [--path P]... [--save [--overwrite]]` | Turns a captured trace into a case (see below). Prints the case JSON (notes about skipped fields go to stderr); with `--save` it stores it instead. |
 | `case list` | JSON list of case ids. |
 | `case show CASE_ID` | Prints the saved case. |
 | `case delete CASE_ID --yes` | Deletes the case **and all its runs**. Refuses (exit 2) without `--yes`. |

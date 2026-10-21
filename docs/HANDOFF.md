@@ -6,6 +6,7 @@
 - Python 3.11 is installable locally: `pip install uv && uv python install 3.11` (suite: 359 passed on 3.11.15).
 - **CLI wiring done (session 8):** `run`/`run-all --adapter NAME --config FILE` (README section "Running a real agent"). 370 tests, ruff clean.
 - **Owner decision pending: D-013 (project name taken on PyPI).** Release (#7 clean install: DONE; #8 name: BLOCKED on owner). Never publish without explicit authorization.
+- **Trace v1 + `case from-trace` done (D-014).** Raw-trace persistence (schema v3), multi-step traces and framework importers are NOT done.
 - Next: HTTP adapter (SSRF guard, D-010 section 4) or Tier B (needs bubblewrap to test; claim nothing untested); trace import; JSON-schema operators. Do not claim sandboxing for Tier A. D-010/D-011 (MIT)/D-012 were accepted in earlier sessions under the owner's chat delegation ("jo best approach ho woh karo"); the owner may override any of them.
 
 ## State (end of session 7, 2026-10-18)

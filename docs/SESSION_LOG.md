@@ -36,3 +36,4 @@
 - Found main had moved (sessions 5-7) and CI was red. Added CI failure annotations, reproduced locally with a group-writable interpreter (44 failed), fixed the test helper, CI green on 8a3e726. Installed Python 3.11 locally via uv: 359 passed.
 - CLI wiring for subprocess adapters (`--adapter/--config`), README section, 11 tests, mutation-checked; tests 359 -> 370.
 - Clean-install verification (3.11/3.12, editable + wheel), packaging metadata, twine check, name check: PyPI `agentproof` is taken (D-013 OPEN).
+- Trace v1 + `case from-trace` (D-014), path-length cap, example trace; tests 376 -> 410; 5 mutations caught.

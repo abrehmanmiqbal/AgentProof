@@ -21,8 +21,15 @@ from .models import AssertionOperator, AssertionSpec, RegressionCase, Regression
 from .regression import RegressionEngine
 from .report import render_json, render_markdown
 from .runner import RUNNERS, DeterministicLocalRunner
-from .storage import MAX_JSON_BYTES, PayloadTooLargeError, Repository, StorageError
+from .storage import (
+    MAX_JSON_BYTES,
+    CaseExistsError,
+    PayloadTooLargeError,
+    Repository,
+    StorageError,
+)
 from .subprocess_adapter import SubprocessAdapter
+from .trace import MAX_TRACE_BYTES, TraceError, case_from_trace, parse_trace
 
 DEFAULT_DB = "agentproof.db"
 MAX_REPEAT = 20
@@ -49,6 +56,25 @@ def load_case_file(path: str) -> RegressionCase:
         return RegressionCase.model_validate_json(raw)
     except ValidationError as exc:
         raise CliError(f"Invalid case file: {exc.error_count()} validation error(s): {exc}") from exc
+
+
+def _case_from_trace_file(args: argparse.Namespace):
+    try:
+        with Path(args.file).open("rb") as handle:
+            raw = handle.read(MAX_TRACE_BYTES + 1)
+    except OSError as exc:
+        raise CliError(f"Cannot read trace file: {exc.strerror or exc}") from exc
+    try:
+        return case_from_trace(
+            parse_trace(raw), case_id=args.case_id, name=args.name, paths=args.paths
+        )
+    except TraceError as exc:
+        raise CliError(str(exc)) from exc
+
+
+def _print_notes(notes: list[str]) -> None:
+    for note in notes:
+        print(f"note: {note}", file=sys.stderr)
 
 
 def _demo() -> int:
@@ -196,6 +222,21 @@ def _build_parser() -> argparse.ArgumentParser:
     add = case.add_parser("add", help="Import a case from a JSON file.")
     add.add_argument("file")
     add.add_argument("--overwrite", action="store_true")
+    ft = case.add_parser(
+        "from-trace",
+        help="Turn a captured trace (JSON) into a regression case; prints it unless --save.",
+    )
+    ft.add_argument("file")
+    ft.add_argument("--case-id", help="Default: the trace_id.")
+    ft.add_argument("--name")
+    ft.add_argument(
+        "--path",
+        action="append",
+        dest="paths",
+        help="Output path to assert on (repeatable). Default: every scalar field.",
+    )
+    ft.add_argument("--save", action="store_true", help="Save the case instead of printing it.")
+    ft.add_argument("--overwrite", action="store_true", help="With --save: replace an existing case.")
     case.add_parser("list", help="List case ids.")
     show = case.add_parser("show", help="Show a saved case.")
     show.add_argument("case_id")
@@ -247,12 +288,27 @@ def _build_parser() -> argparse.ArgumentParser:
 def _dispatch(args: argparse.Namespace) -> int:
     if args.command == "demo":
         return _demo()
+    if args.command == "case" and args.case_command == "from-trace" and not args.save:
+        if args.overwrite:
+            raise CliError("--overwrite is only used together with --save")
+        case, notes = _case_from_trace_file(args)
+        _print_notes(notes)
+        _emit(case.model_dump(mode="json"))
+        return 0
 
     with Repository(args.db) as repo:
         if args.command == "case":
             if args.case_command == "add":
                 digest = repo.save_case(load_case_file(args.file), overwrite=args.overwrite)
                 _emit({"saved": True, "case_hash": digest})
+            elif args.case_command == "from-trace":  # --save
+                case, notes = _case_from_trace_file(args)
+                try:
+                    digest = repo.save_case(case, overwrite=args.overwrite)
+                except CaseExistsError as exc:
+                    raise CliError(f"{exc}; use --overwrite to replace it") from exc
+                _print_notes(notes)
+                _emit({"saved": True, "case_id": case.case_id, "case_hash": digest})
             elif args.case_command == "list":
                 _emit(repo.list_case_ids())
             elif args.case_command == "delete":
