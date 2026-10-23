@@ -6,6 +6,7 @@
     {"path": "category", "operator": "equals", "expected": "contains_text"},
     {"path": "length", "operator": "gt", "expected": 0},
     {"path": "length", "operator": "lt", "expected": 100},
+    {"path": "length", "operator": "matches_type", "expected": "integer"},
     {"path": "action", "operator": "exists"}
   ]
 }

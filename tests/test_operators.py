@@ -230,3 +230,88 @@ def test_assertion_count_is_capped_at_100():
     assert len(_case_with(100).assertions) == 100
     with pytest.raises(ValidationError):
         _case_with(101)
+
+
+# ---------------------------------------------------------------- matches_type
+MT = Op("matches_type")
+
+
+@pytest.mark.parametrize(
+    ("actual", "type_name"),
+    [
+        ("x", "string"),
+        (1, "number"),
+        (1.5, "number"),
+        (1, "integer"),
+        (True, "boolean"),
+        (None, "null"),
+        ({"a": 1}, "object"),
+        ([1], "array"),
+        ([], "array"),
+        ({}, "object"),
+    ],
+)
+def test_matches_type_accepts_the_right_type(actual, type_name):
+    assert run({"v": actual}, "v", MT, type_name).passed is True
+
+
+@pytest.mark.parametrize(
+    ("actual", "type_name"),
+    [
+        (True, "number"),  # bool is never a number
+        (True, "integer"),
+        (False, "number"),
+        (1.5, "integer"),  # strict: 1.5 is not an integer
+        (1.0, "integer"),  # strict: floats are not integers, even whole ones
+        ("1", "number"),
+        (1, "string"),
+        (None, "string"),
+        ([], "object"),
+        ({}, "array"),
+        (0, "boolean"),
+        (0, "null"),
+    ],
+)
+def test_matches_type_rejects_the_wrong_type(actual, type_name):
+    result = run({"v": actual}, "v", MT, type_name)
+    assert result.passed is False
+    assert "type" in result.message.lower()
+
+
+def test_matches_type_accepts_a_list_of_alternatives():
+    assert run({"v": None}, "v", MT, ["string", "null"]).passed is True
+    assert run({"v": "x"}, "v", MT, ["string", "null"]).passed is True
+    assert run({"v": 3}, "v", MT, ["string", "null"]).passed is False
+
+
+def test_matches_type_missing_path_fails_but_null_value_is_present():
+    assert run({}, "v", MT, "null").passed is False
+    assert run({"v": None}, "v", MT, "null").passed is True
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [None, 5, True, "", "str", "String", "int", "float", [], ["string", "string"], ["nope"], [1], ["string", None], {"a": 1}, ["string"] * 8],
+)
+def test_matches_type_expected_must_be_known_type_name(bad):
+    with pytest.raises(ValidationError):
+        spec("v", MT, bad)
+
+
+def test_matches_type_is_documented_in_the_example_cases_and_cli(tmp_path):
+    f = write_case(
+        tmp_path,
+        [
+            {"path": "length", "operator": "matches_type", "expected": "integer"},
+            {"path": "category", "operator": "matches_type", "expected": ["string", "null"]},
+        ],
+    )
+    assert cli(tmp_path, "case", "add", f) == 0
+    assert cli(tmp_path, "run", "op-case", "--label", "x") == 0
+    bad = write_case(
+        tmp_path,
+        [{"path": "length", "operator": "matches_type", "expected": "float"}],
+        name="bad.json",
+        case_id="bad-case",
+    )
+    assert cli(tmp_path, "case", "add", bad) == 2

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from .regex_safety import UnsafeRegexError, validate_pattern
 
 MAX_ASSERTIONS = 100
+TYPE_NAMES = ("string", "number", "integer", "boolean", "null", "object", "array")
 
 
 class AssertionOperator(StrEnum):
@@ -21,6 +22,7 @@ class AssertionOperator(StrEnum):
     GT = "gt"
     LT = "lt"
     REGEX = "regex"
+    MATCHES_TYPE = "matches_type"
 
 
 class AssertionSpec(BaseModel):
@@ -38,6 +40,19 @@ class AssertionSpec(BaseModel):
                 raise ValueError(f"'{self.operator.value}' requires a numeric 'expected'")
             if isinstance(value, float) and not math.isfinite(value):
                 raise ValueError("'expected' must be a finite number")
+        elif self.operator == AssertionOperator.MATCHES_TYPE:
+            names = self.expected if isinstance(self.expected, list) else [self.expected]
+            if (
+                not names
+                or len(names) > len(TYPE_NAMES)
+                or not all(isinstance(n, str) and n in TYPE_NAMES for n in names)
+                or len(set(names)) != len(names)
+            ):
+                raise ValueError(
+                    "'matches_type' requires one of "
+                    + ", ".join(TYPE_NAMES)
+                    + " (or a list of distinct names)"
+                )
         elif self.operator == AssertionOperator.REGEX:
             try:
                 validate_pattern(self.expected)

@@ -78,6 +78,7 @@ By default every scalar field of `output` becomes an `equals` assertion (at most
 | `not_equals` | any JSON value | the opposite of `equals` (a missing path fails) |
 | `contains` | any JSON value | Python `in`: substring for strings, membership for lists, key for objects |
 | `gt` / `lt` | finite number | actual is a number (not a boolean) strictly greater / less than expected |
+| `matches_type` | type name, or a list of names | actual's JSON type is the name (or any in the list): `string`, `number`, `integer`, `boolean`, `null`, `object`, `array`. Strict: a boolean is never a number; only ints are `integer` (`1.0` is not). Unknown names are rejected when the case is loaded. |
 | `regex` | pattern string | actual is a string and `re.search(pattern, actual)` finds a match |
 
 Every operator except `exists` fails if the path is missing. Use `^...$` to anchor a regex.

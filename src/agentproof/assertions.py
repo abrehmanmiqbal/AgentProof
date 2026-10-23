@@ -39,6 +39,23 @@ def _resolve_path(value: Any, path: str) -> tuple[bool, Any]:
     return True, current
 
 
+def _has_type(value: Any, name: str) -> bool:
+    """JSON type check. Strict: bool is never a number; only ints are integers."""
+    if name == "string":
+        return isinstance(value, str)
+    if name == "number":
+        return _is_number(value)
+    if name == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if name == "boolean":
+        return isinstance(value, bool)
+    if name == "null":
+        return value is None
+    if name == "object":
+        return isinstance(value, dict)
+    return name == "array" and isinstance(value, list)
+
+
 def _is_number(value: Any) -> bool:
     return isinstance(value, int | float) and not isinstance(value, bool)
 
@@ -74,6 +91,10 @@ def evaluate_assertion(output: dict[str, Any], spec: AssertionSpec) -> Assertion
         else:
             passed = actual < spec.expected
             message = "Value is less" if passed else "Value is not less"
+    elif spec.operator == AssertionOperator.MATCHES_TYPE:
+        names = spec.expected if isinstance(spec.expected, list) else [spec.expected]
+        passed = any(_has_type(actual, n) for n in names)
+        message = "Type matches" if passed else f"Value type does not match {'|'.join(names)}"
     elif spec.operator == AssertionOperator.REGEX:
         if not isinstance(actual, str):
             passed = False

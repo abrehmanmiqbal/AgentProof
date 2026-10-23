@@ -27,7 +27,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 
 ## Milestone 1b — Assertion operators
 - [x] `gt`, `lt` (numeric), `regex` (restricted, length-limited; D-009) with 61 tests incl. CLI integration, mutation checks and fuzzing.
-- [ ] JSON-schema / `matches_type` operators (not started).
+- [x] `matches_type` operator (JSON types; strict). [ ] Full JSON-schema validation (would need a dependency or a bounded validator; not started).
 
 ## Milestone 3 — API and CLI
 - [x] CLI: case add/list/show, run, runs, compare (+ exit codes) with tests.
