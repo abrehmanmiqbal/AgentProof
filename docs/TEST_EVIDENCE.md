@@ -125,3 +125,4 @@ NOT verified: CI for the trace commit (checked after push); traces from real fra
 38. CI on 2dfbc94 (trace commit): jobs `test (3.11)` and `test (3.12)` both success (API).
 39. `matches_type`, test-first: new tests appended to tests/test_operators.py -> collection error (`'matches_type' is not a valid AssertionOperator`). After implementation: **449 passed, 1 failed** — the existing guard test `test_examples_demonstrate_every_operator` correctly failed until `examples/cases/classify.json` used the operator; then `pytest` **450 passed** on 3.12.3 and on 3.11.15, `ruff check .` clean.
 40. Mutation checks: bool counted as integer -> failed; bool counted as number -> failed; duplicate type names allowed -> failed; only first alternative checked -> failed (each caught by tests); restored, 450 passed.
+41. CI on 271b540 (matches_type): jobs `test (3.11)` and `test (3.12)` both success (API).
