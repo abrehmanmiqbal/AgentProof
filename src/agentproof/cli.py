@@ -16,7 +16,8 @@ from typing import Any
 from pydantic import ValidationError
 
 from .comparison import Verdict, compare_runs
-from .config import ConfigError, load_config
+from .config import ConfigError, HttpAdapterConfig, load_config
+from .http_adapter import HttpAdapter
 from .models import AssertionOperator, AssertionSpec, RegressionCase, RegressionResult
 from .regression import RegressionEngine
 from .report import render_json, render_markdown
@@ -133,6 +134,8 @@ def _resolve_runner(args: argparse.Namespace) -> tuple[str, Callable[[], Any]]:
     if adapter is None:
         known = ", ".join(sorted(config.adapters)) or "none"
         raise CliError(f"unknown adapter '{args.adapter}' in {args.config} (known: {known})")
+    if isinstance(adapter, HttpAdapterConfig):
+        return f"adapter:{args.adapter}", lambda: HttpAdapter(adapter)
     return f"adapter:{args.adapter}", lambda: SubprocessAdapter(adapter)
 
 
@@ -145,8 +148,9 @@ def _add_runner_args(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--adapter",
-        help="Run the agent through an adapter from --config. Tier A runs the configured "
-        "command as YOU, without a sandbox: trusted code only.",
+        help="Run the agent through an adapter from --config. A subprocess (Tier A) adapter runs "
+        "the configured command as YOU, without a sandbox: trusted code only. An http adapter "
+        "sends the case input to the configured endpoint.",
     )
     parser.add_argument("--config", help="agentproof.toml with [adapters.NAME] entries (explicit path).")
 

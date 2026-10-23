@@ -418,21 +418,21 @@ def _depth_ok(value: Any) -> bool:
     return True
 
 
-def _parse_output(raw: bytes) -> dict[str, Any]:
+def _parse_output(raw: bytes, what: str = "stdout") -> dict[str, Any]:
     try:
         text = raw.decode("utf-8")
     except UnicodeDecodeError:
-        raise AdapterError("stdout is not valid UTF-8") from None
+        raise AdapterError(f"{what} is not valid UTF-8") from None
     try:
         data = json.loads(text, parse_constant=_reject_constant)
     except RecursionError:
-        raise AdapterError("stdout is not valid JSON (nested too deeply)") from None
+        raise AdapterError(f"{what} is not valid JSON (nested too deeply)") from None
     except ValueError:
-        raise AdapterError("stdout is not valid JSON") from None
+        raise AdapterError(f"{what} is not valid JSON") from None
     if not isinstance(data, dict):
-        raise AdapterError(f"stdout JSON must be an object, got {type(data).__name__}")
+        raise AdapterError(f"{what} JSON must be an object, got {type(data).__name__}")
     if not _depth_ok(data):
-        raise AdapterError(f"stdout JSON is nested too deeply (limit {MAX_OUTPUT_DEPTH})")
+        raise AdapterError(f"{what} JSON is nested too deeply (limit {MAX_OUTPUT_DEPTH})")
     return data
 
 

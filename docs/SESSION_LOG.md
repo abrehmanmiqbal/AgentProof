@@ -38,3 +38,4 @@
 - Clean-install verification (3.11/3.12, editable + wheel), packaging metadata, twine check, name check: PyPI `agentproof` is taken (D-013 OPEN).
 - Trace v1 + `case from-trace` (D-014), path-length cap, example trace; tests 376 -> 410; 5 mutations caught.
 - `matches_type` operator (strict JSON types); tests 410 -> 450.
+- HTTP adapter (D-015) with SSRF guard/pinning/watchdog, example config, README; tests 450 -> 548; 6 mutations caught; found+fixed a watchdog bug via the trickle test.

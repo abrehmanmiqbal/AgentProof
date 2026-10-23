@@ -36,6 +36,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [ ] Validated HTTP API (local-only bind by default) + integration tests.
 - [x] README documents every CLI command, case-file format, operators, limits and exit codes (snippets executed; see TEST_EVIDENCE.md).
 - [ ] Docs for the HTTP API (API not built).
+- [x] HTTP adapter (`type = "http"`, session 8, D-015): SSRF guard, pinned connection, no redirects, TLS verified, size/deadline caps, env-var credentials.
 
 ## Milestone 4 — Usable interface
 - [ ] Minimal local UI (cases, runs, diffs, reports); empty/error/loading states.

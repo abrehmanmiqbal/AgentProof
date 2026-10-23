@@ -19,6 +19,7 @@ Safety properties:
 from __future__ import annotations
 
 import errno
+import ipaddress
 import math
 import os
 import posixpath
@@ -29,6 +30,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any
+from urllib.parse import urlsplit
 
 from .runner import RUNNERS
 
@@ -37,6 +39,11 @@ MAX_ADAPTERS = 64
 MAX_ARGV_ITEMS = 64
 MAX_ARGV_ITEM_LENGTH = 4096
 MAX_ENV_ALLOW = 32
+MAX_URL_LENGTH = 2048
+MAX_ALLOW_HOSTS = 32
+MAX_HEADERS = 16
+DEFAULT_MAX_RESPONSE_BYTES = 1_000_000
+MAX_RESPONSE_BYTES = 1_000_000  # matches the storage cap per stored result
 
 DEFAULT_TIMEOUT_SECONDS = 30
 MAX_TIMEOUT_SECONDS = 300
@@ -52,8 +59,18 @@ _NAME = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
 _ENV_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,63}")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _TOP_KEYS = {"adapters"}
+_HTTP_KEYS = {
+    "type", "url", "timeout_seconds", "max_response_bytes", "allow_hosts",
+    "allow_insecure_http", "headers_env",
+}
+_HOSTNAME = re.compile(r"[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?")
+_HEADER_NAME = re.compile(r"[A-Za-z0-9-]{1,64}")
+_FORBIDDEN_HEADERS = {
+    "host", "content-length", "content-type", "transfer-encoding", "connection", "accept",
+    "user-agent", "expect", "upgrade", "te", "trailer", "keep-alive",
+}
 _ADAPTER_KEYS = {
-    "tier", "argv", "acknowledge_not_sandboxed", "timeout_seconds", "max_stdout_bytes",
+    "type", "tier", "argv", "acknowledge_not_sandboxed", "timeout_seconds", "max_stdout_bytes",
     "max_stderr_bytes", "memory_limit_bytes", "env_allow", "executable_sha256",
 }
 _FORBIDDEN_ENV_NAMES = {
@@ -81,8 +98,25 @@ class AdapterConfig:
 
 
 @dataclass(frozen=True)
+class HttpAdapterConfig:
+    """An HTTP endpoint that receives the case input as a JSON POST (ADAPTER_ISOLATION.md s4)."""
+
+    name: str
+    url: str  # normalised, no credentials/query/fragment
+    scheme: str
+    host: str  # lowercase hostname or IP literal (no brackets)
+    port: int
+    path: str
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+    max_response_bytes: int = DEFAULT_MAX_RESPONSE_BYTES
+    allow_hosts: tuple[str, ...] = ()
+    allow_insecure_http: bool = False
+    headers_env: tuple[tuple[str, str], ...] = ()  # (header name, env var NAME holding the value)
+
+
+@dataclass(frozen=True)
 class Config:
-    adapters: Mapping[str, AdapterConfig]
+    adapters: Mapping[str, AdapterConfig | HttpAdapterConfig]
 
 
 def load_config(path: str | os.PathLike[str]) -> Config:
@@ -153,7 +187,7 @@ def _bounded_int(entry: dict[str, Any], key: str, default: int, low: int, high: 
     return value
 
 
-def _parse_adapter(name: str, entry: Any) -> AdapterConfig:
+def _parse_adapter(name: str, entry: Any) -> AdapterConfig | HttpAdapterConfig:
     if not isinstance(name, str) or not _NAME.fullmatch(name):
         raise ConfigError(
             f"invalid adapter name {name[:40]!r}: use 1-64 chars of a-z, 0-9, '_' or '-', "
@@ -163,6 +197,11 @@ def _parse_adapter(name: str, entry: Any) -> AdapterConfig:
         raise ConfigError(f"adapter name {name!r} would shadow a built-in runner")
     if not isinstance(entry, dict):
         raise ConfigError(f"adapter {name}: entry must be a table")
+    kind = entry.get("type", "subprocess")
+    if kind == "http":
+        return _parse_http(name, entry)
+    if kind != "subprocess":
+        raise ConfigError(f"adapter {name}: type must be \"subprocess\" or \"http\"")
     unknown = set(entry) - _ADAPTER_KEYS
     if unknown:
         raise ConfigError(f"adapter {name}: unknown key(s): {_names(unknown)}")
@@ -237,6 +276,148 @@ def _parse_argv(name: str, argv: Any) -> tuple[str, ...]:
             "(no '..', no '//', no trailing '/')"
         )
     return tuple(argv)
+
+
+def _parse_timeout(name: str, entry: dict[str, Any]) -> float:
+    timeout = entry.get("timeout_seconds", DEFAULT_TIMEOUT_SECONDS)
+    if (
+        isinstance(timeout, bool)
+        or not isinstance(timeout, int | float)
+        or not math.isfinite(timeout)
+        or not 0 < timeout <= MAX_TIMEOUT_SECONDS
+    ):
+        raise ConfigError(
+            f"adapter {name}: timeout_seconds must be a number above 0 and at most "
+            f"{MAX_TIMEOUT_SECONDS}"
+        )
+    return timeout
+
+
+def _host_or_none(value: Any) -> str | None:
+    """A lowercase hostname or IP literal, else None."""
+    if not isinstance(value, str):
+        return None
+    if _HOSTNAME.fullmatch(value):
+        return value
+    try:
+        return str(ipaddress.ip_address(value)) if "%" not in value else None
+    except ValueError:
+        return None
+
+
+def _parse_http(name: str, entry: dict[str, Any]) -> HttpAdapterConfig:
+    unknown = set(entry) - _HTTP_KEYS
+    if unknown:
+        raise ConfigError(f"adapter {name}: unknown key(s) for an http adapter: {_names(unknown)}")
+
+    allow_hosts = entry.get("allow_hosts", [])
+    if not isinstance(allow_hosts, list) or len(allow_hosts) > MAX_ALLOW_HOSTS:
+        raise ConfigError(f"adapter {name}: allow_hosts must be a list of at most {MAX_ALLOW_HOSTS} hosts")
+    hosts: list[str] = []
+    for item in allow_hosts:
+        host = _host_or_none(item)
+        if host is None or host != item or host in hosts:
+            raise ConfigError(
+                f"adapter {name}: allow_hosts entries must be distinct lowercase hostnames or IPs "
+                "(no scheme, port or path)"
+            )
+        hosts.append(host)
+    insecure = entry.get("allow_insecure_http", False)
+    if not isinstance(insecure, bool):
+        raise ConfigError(f"adapter {name}: allow_insecure_http must be true or false")
+
+    url, scheme, host, port, path = _parse_url(name, entry.get("url"))
+    loopback = host == "localhost" or _is_loopback_ip(host)
+    if not loopback and host not in hosts:
+        raise ConfigError(
+            f"adapter {name}: host {host!r} is not a loopback address and is not listed in allow_hosts"
+        )
+    if scheme == "http" and not loopback and not insecure:
+        raise ConfigError(
+            f"adapter {name}: plain http to {host!r} sends data unencrypted; use https or set "
+            "allow_insecure_http = true"
+        )
+    return HttpAdapterConfig(
+        name=name,
+        url=url,
+        scheme=scheme,
+        host=host,
+        port=port,
+        path=path,
+        timeout_seconds=_parse_timeout(name, entry),
+        max_response_bytes=_bounded_int(
+            entry, "max_response_bytes", DEFAULT_MAX_RESPONSE_BYTES, 1, MAX_RESPONSE_BYTES, name
+        ),
+        allow_hosts=tuple(hosts),
+        allow_insecure_http=insecure,
+        headers_env=_parse_headers_env(name, entry.get("headers_env", {})),
+    )
+
+
+def _is_loopback_ip(host: str) -> bool:
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _parse_url(name: str, value: Any) -> tuple[str, str, str, int, str]:
+    if not isinstance(value, str) or not value or len(value) > MAX_URL_LENGTH:
+        raise ConfigError(f"adapter {name}: url must be a string of at most {MAX_URL_LENGTH} characters")
+    if any(not 32 < ord(c) < 127 for c in value):
+        raise ConfigError(f"adapter {name}: url may only contain printable ASCII without spaces")
+    try:
+        parts = urlsplit(value)
+        port = parts.port
+        hostname = parts.hostname
+    except ValueError:
+        raise ConfigError(f"adapter {name}: url is not valid") from None
+    scheme = parts.scheme.lower()
+    if scheme not in ("http", "https"):
+        raise ConfigError(f"adapter {name}: url scheme must be http or https")
+    if "@" in parts.netloc:
+        raise ConfigError(f"adapter {name}: url must not contain credentials; use headers_env")
+    if parts.query or parts.fragment or "?" in value or "#" in value:
+        raise ConfigError(
+            f"adapter {name}: url must not contain a query or fragment; use headers_env for credentials"
+        )
+    host = _host_or_none(hostname)
+    if host is None:
+        raise ConfigError(f"adapter {name}: url has no valid host")
+    default_port = 443 if scheme == "https" else 80
+    port = default_port if port is None else port
+    if not 1 <= port <= 65535:
+        raise ConfigError(f"adapter {name}: url port must be 1-65535")
+    path = parts.path or "/"
+    shown = f"[{host}]" if ":" in host else host
+    netloc = shown if port == default_port else f"{shown}:{port}"
+    return f"{scheme}://{netloc}{path}", scheme, host, port, path
+
+
+def _parse_headers_env(name: str, value: Any) -> tuple[tuple[str, str], ...]:
+    if not isinstance(value, dict) or len(value) > MAX_HEADERS:
+        raise ConfigError(f"adapter {name}: headers_env must be a table of at most {MAX_HEADERS} entries")
+    seen: set[str] = set()
+    pairs: list[tuple[str, str]] = []
+    for header, env in value.items():
+        if not _HEADER_NAME.fullmatch(header) or header.lower() in _FORBIDDEN_HEADERS:
+            raise ConfigError(f"adapter {name}: headers_env header name {header[:40]!r} is not allowed")
+        if header.lower() in seen:
+            raise ConfigError(f"adapter {name}: duplicate header {header!r}")
+        seen.add(header.lower())
+        upper = env.upper() if isinstance(env, str) else ""
+        if (
+            not isinstance(env, str)
+            or not _ENV_NAME.fullmatch(env)
+            or upper in _FORBIDDEN_ENV_NAMES
+            or upper.startswith(_FORBIDDEN_ENV_PREFIXES)
+        ):
+            raise ConfigError(
+                f"adapter {name}: headers_env values must be plain environment variable NAMES "
+                "(the secret itself is read from the environment at run time)"
+            )
+        pairs.append((header, env))
+    return tuple(pairs)
 
 
 def _parse_env_allow(name: str, value: Any) -> tuple[str, ...]:

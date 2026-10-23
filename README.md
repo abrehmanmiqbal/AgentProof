@@ -6,7 +6,7 @@ AgentProof is built free-first: the core loop runs locally without paid APIs, cl
 
 ## Project status
 
-Early development. Implemented and tested locally and in CI (Python 3.11 and 3.12): typed models, deterministic offline runners, Tier A subprocess adapters, secret redaction of stored runs, assertion engine, SQLite persistence, before/after comparison, Markdown/JSON reports, and the CLI below. **Not implemented yet:** HTTP API, UI, trace import, HTTP adapters, sandboxed (Tier B) adapters, HTML reports. Real agents can be tested through Tier A subprocess adapters (see below; **not a sandbox**). See [docs/TASKS.md](docs/TASKS.md) and [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
+Early development. Implemented and tested locally and in CI (Python 3.11 and 3.12): typed models, deterministic offline runners, Tier A subprocess adapters, secret redaction of stored runs, assertion engine, SQLite persistence, before/after comparison, Markdown/JSON reports, and the CLI below. **Not implemented yet:** HTTP API, UI, trace import, sandboxed (Tier B) adapters, HTML reports. Real agents can be tested through Tier A subprocess adapters (see below; **not a sandbox**). See [docs/TASKS.md](docs/TASKS.md) and [docs/PROJECT_STATE.md](docs/PROJECT_STATE.md).
 
 ## Install
 
@@ -126,6 +126,25 @@ env_allow = ["MY_AGENT_MODEL"]                       # optional: variable NAMES 
 The agent receives the case `input` as one JSON object on stdin and must print one JSON object on stdout (exit code 0). Failures (timeout, crash, non-JSON, oversized output, non-zero exit) become **recorded failed runs**, not crashes. Each run stores reproducibility metadata (executable path and SHA-256, argv, env variable *names*, limits, exit code, duration), and stored text goes through best-effort secret redaction. `--adapter` cannot be combined with `--runner`.
 
 **Tier A is NOT a sandbox.** It limits time, output size, memory and processes and starts the agent with a clean environment, but the command runs **as you**, with your files and network. Use it only for code you would run by hand anyway. Design and limits: [docs/ADAPTER_ISOLATION.md](docs/ADAPTER_ISOLATION.md).
+
+### Running a real agent over HTTP
+
+A `type = "http"` adapter POSTs the case `input` as a JSON body and expects a JSON object back. Same rules as above: explicit `--config`, `--adapter NAME`, failures are recorded failed runs.
+
+```toml
+[adapters.my-http-agent]
+type = "http"
+url = "http://127.0.0.1:8000/agent"     # loopback needs no extra settings
+timeout_seconds = 30                    # ONE total deadline for the whole call (max 300)
+max_response_bytes = 1000000            # optional cap (max 1,000,000)
+# allow_hosts = ["agent.example.com"]   # required for any non-loopback host
+# allow_insecure_http = true            # plain http to a non-loopback host (not recommended)
+
+[adapters.my-http-agent.headers_env]    # header name -> NAME of an environment variable
+Authorization = "MY_AGENT_TOKEN"
+```
+
+Safety rules: the URL lives only in this file (no credentials, query or fragment in it; put secrets in `headers_env`, whose values are read from the environment at run time and never stored or printed). Non-loopback hosts must be listed in `allow_hosts` and use https. The host is resolved once, every address is checked and the connection is pinned to it: link-local (cloud metadata), unspecified, multicast and reserved addresses are always refused, and a host that is not allow-listed must resolve to loopback. Redirects are never followed; TLS certificates are always verified. The run records `adapter_tier` `H`, the URL, the HTTP status (in `exit_code`) and the header variable names. The case input is sent to that endpoint, so only point it at services you trust with that data. A full example: [`examples/agentproof.example.toml`](examples/agentproof.example.toml).
 
 ### Exit codes
 

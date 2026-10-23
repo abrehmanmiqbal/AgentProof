@@ -106,7 +106,7 @@ class RunMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     adapter_name: str = Field(min_length=1, max_length=64)
-    adapter_tier: Literal["A", "B"]
+    adapter_tier: Literal["A", "B", "H"]
     executable_path: str | None = Field(default=None, max_length=MAX_ARGV_ITEM_LENGTH)
     executable_sha256: str | None = None
     argv: list[str] = Field(default_factory=list, max_length=MAX_ARGV_ITEMS)
@@ -117,6 +117,11 @@ class RunMetadata(BaseModel):
     duration_ms: int | None = Field(default=None, ge=0)
     stdout_truncated: bool | None = None
     stderr_truncated: bool | None = None
+
+    @property
+    def response_truncated(self) -> bool | None:
+        """HTTP adapters: the response hit the byte cap (stored in the ``stdout_truncated`` column)."""
+        return self.stdout_truncated
 
     @field_validator("executable_sha256")
     @classmethod

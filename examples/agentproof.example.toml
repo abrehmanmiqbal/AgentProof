@@ -1,0 +1,20 @@
+# Copy to your own agentproof.toml and pass it explicitly: --config agentproof.toml
+# (it is never auto-discovered). Keep it private: it must not be group/world writable.
+
+# 1) Run a local command as an agent. Tier A is NOT a sandbox: the command runs as you.
+[adapters.my-cmd-agent]
+tier = "A"
+argv = ["/usr/bin/python3", "/opt/agent/main.py"]
+acknowledge_not_sandboxed = true
+timeout_seconds = 30
+
+# 2) Call an HTTP endpoint (the case input is POSTed as JSON, the reply must be a JSON object).
+[adapters.my-http-agent]
+type = "http"
+url = "http://127.0.0.1:8000/agent"   # loopback is allowed by default
+timeout_seconds = 30
+# For any other host: https only (unless allow_insecure_http = true) and list it explicitly:
+# allow_hosts = ["agent.example.com"]
+# Credentials are read from the environment at run time; only the variable NAME is stored.
+[adapters.my-http-agent.headers_env]
+Authorization = "MY_AGENT_TOKEN"

@@ -36,7 +36,7 @@ Trusted: the person running the CLI (they choose file paths, `--db`, `--output`)
 | 13 | Terminal noise: `BrokenPipeError` traceback when output is piped into `head` | Known, cosmetic | Observed in session 3 | Not fixed |
 
 ## Future threats (not yet applicable)
-- Adapters executing user commands/code or calling HTTP endpoints (sandbox escape, resource exhaustion, SSRF, env/secret leakage, output injection). Tier A subprocess adapter: built and tested against a hostile agent for hangs, floods, orphan children, env leakage, bad output and limits (see TEST_EVIDENCE); NOT covered: filesystem/network access of the child, setsid escapes, a file swapped between hash check and launch, RLIMIT_NPROC as root. HTTP adapter (SSRF) and Tier B: not built.
+- Adapters executing user commands/code (sandbox escape, resource exhaustion, env/secret leakage, output injection). The HTTP adapter now exists (D-015): SSRF guard with pinned connection, no redirects, TLS verified, response cap and total deadline; remaining risks: the endpoint receives the case input (data leaves the machine if the host is remote), DNS lookup time is unbounded, allow-listed hosts may resolve to private ranges. Tier A subprocess adapter: built and tested against a hostile agent for hangs, floods, orphan children, env leakage, bad output and limits (see TEST_EVIDENCE); NOT covered: filesystem/network access of the child, setsid escapes, a file swapped between hash check and launch, RLIMIT_NPROC as root. HTTP adapter (SSRF) and Tier B: not built.
 - HTTP API: authentication, CSRF, local-only bind, request size limits.
 - Trace import: untrusted large/nested files; prompt-injection text inside traces is data and must never be executed or fed to tools.
 

@@ -48,3 +48,16 @@ def test_example_trace_converts_to_a_case_that_passes_with_the_local_runner():
     assert notes == [] and len(case.assertions) >= 2
     assert RegressionEngine(RUNNERS["local"]()).run_case(case).passed
     assert not RegressionEngine(RUNNERS["local-legacy"]()).run_case(case).passed
+
+
+def test_example_config_is_valid(tmp_path):
+    import shutil
+
+    from agentproof.config import HttpAdapterConfig, load_config
+
+    target = tmp_path / "agentproof.toml"
+    shutil.copy(CASES_DIR.parent / "agentproof.example.toml", target)
+    target.chmod(0o600)
+    adapters = load_config(target).adapters
+    assert set(adapters) == {"my-cmd-agent", "my-http-agent"}
+    assert isinstance(adapters["my-http-agent"], HttpAdapterConfig)
