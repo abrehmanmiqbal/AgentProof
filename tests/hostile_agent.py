@@ -1,7 +1,7 @@
 """A deliberately hostile agent used ONLY by the Tier A adapter tests (D-010, section 7).
 
 It reads one JSON object from stdin; ``mode`` picks the misbehaviour. It is never imported and
-never run by AgentProof itself, only by the test-suite through the adapter under test.
+never run by RegressAgent itself, only by the test-suite through the adapter under test.
 """
 import json
 import os

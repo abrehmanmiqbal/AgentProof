@@ -1,13 +1,13 @@
 import pytest
 
-from agentproof.comparison import AssertionChange, Verdict, compare_results, compare_runs
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase, RegressionResult
-from agentproof.regression import RegressionEngine
-from agentproof.storage import Repository
+from regressagent.comparison import AssertionChange, Verdict, compare_results, compare_runs
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase, RegressionResult
+from regressagent.regression import RegressionEngine
+from regressagent.storage import Repository
 
 
 def res(passed_map, *, error=None, case_id="c"):
-    from agentproof.models import AssertionResult
+    from regressagent.models import AssertionResult
 
     return RegressionResult(
         case_id=case_id,

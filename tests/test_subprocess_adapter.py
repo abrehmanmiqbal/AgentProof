@@ -16,10 +16,10 @@ from pathlib import Path
 
 import pytest
 
-from agentproof.config import AdapterConfig
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase
-from agentproof.regression import RegressionEngine
-from agentproof.subprocess_adapter import AdapterError, SubprocessAdapter
+from regressagent.config import AdapterConfig
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase
+from regressagent.regression import RegressionEngine
+from regressagent.subprocess_adapter import AdapterError, SubprocessAdapter
 
 
 def _pick_agent_python() -> str | None:
@@ -139,7 +139,7 @@ def test_child_view_is_clean_cwd_group_and_stdin():
     assert info["stdin_tty"] is False
     assert info["pgid_is_own"] is True
     assert info["cwd"] != os.getcwd()
-    assert "agentproof-" in info["cwd"]
+    assert "regressagent-" in info["cwd"]
     assert not Path(info["cwd"]).exists(), "temp cwd must be deleted after the run"
 
 
@@ -155,7 +155,7 @@ def test_environment_is_empty_plus_allow_list_only():
 
 
 def test_real_process_environment_is_not_inherited(monkeypatch):
-    monkeypatch.setenv("AGENTPROOF_TEST_SECRET", "must-not-leak-9876543210")
+    monkeypatch.setenv("REGRESSAGENT_TEST_SECRET", "must-not-leak-9876543210")
     adapter = SubprocessAdapter(
         AdapterConfig(name="h", tier="A", argv=(PYTHON, AGENT), timeout_seconds=5)
     )  # default environ = os.environ
@@ -459,11 +459,11 @@ def test_symlinks_and_unreadable_dirs_in_cwd_do_not_make_cleanup_follow_or_crash
 def test_temp_dirs_do_not_accumulate():
     import tempfile
 
-    before = {p for p in Path(tempfile.gettempdir()).glob("agentproof-*")}
+    before = {p for p in Path(tempfile.gettempdir()).glob("regressagent-*")}
     adapter = make()
     for _ in range(3):
         adapter.run({"mode": "ok"})
     with pytest.raises(AdapterError):
         adapter.run({"mode": "exit_nonzero"})
-    after = {p for p in Path(tempfile.gettempdir()).glob("agentproof-*")}
+    after = {p for p in Path(tempfile.gettempdir()).glob("regressagent-*")}
     assert after <= before

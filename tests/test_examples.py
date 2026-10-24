@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from agentproof.cli import load_case_file, main
-from agentproof.models import AssertionOperator
-from agentproof.regression import RegressionEngine
-from agentproof.runner import RUNNERS
+from regressagent.cli import load_case_file, main
+from regressagent.models import AssertionOperator
+from regressagent.regression import RegressionEngine
+from regressagent.runner import RUNNERS
 
 CASES_DIR = Path(__file__).resolve().parent.parent / "examples" / "cases"
 FILES = sorted(CASES_DIR.glob("*.json"))
@@ -41,7 +41,7 @@ def test_examples_work_through_the_cli(tmp_path):
 
 
 def test_example_trace_converts_to_a_case_that_passes_with_the_local_runner():
-    from agentproof.trace import case_from_trace, parse_trace
+    from regressagent.trace import case_from_trace, parse_trace
 
     raw = (CASES_DIR.parent / "traces" / "greet-ava.json").read_bytes()
     case, notes = case_from_trace(parse_trace(raw))
@@ -53,10 +53,10 @@ def test_example_trace_converts_to_a_case_that_passes_with_the_local_runner():
 def test_example_config_is_valid(tmp_path):
     import shutil
 
-    from agentproof.config import HttpAdapterConfig, load_config
+    from regressagent.config import HttpAdapterConfig, load_config
 
-    target = tmp_path / "agentproof.toml"
-    shutil.copy(CASES_DIR.parent / "agentproof.example.toml", target)
+    target = tmp_path / "regressagent.toml"
+    shutil.copy(CASES_DIR.parent / "regressagent.example.toml", target)
     target.chmod(0o600)
     adapters = load_config(target).adapters
     assert set(adapters) == {"my-cmd-agent", "my-http-agent"}

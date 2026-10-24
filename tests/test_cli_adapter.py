@@ -6,8 +6,8 @@ import sys
 import pytest
 from test_subprocess_adapter import AGENT, PYTHON  # sibling test module (tests/ is on sys.path)
 
-from agentproof.cli import main
-from agentproof.storage import Repository
+from regressagent.cli import main
+from regressagent.storage import Repository
 
 pytestmark = [
     pytest.mark.skipif(not sys.platform.startswith("linux"), reason="Tier A adapters are Linux only"),
@@ -35,7 +35,7 @@ def write_case(tmp_path, case=None, name="c.json"):
     return str(f)
 
 
-def write_config(tmp_path, name="hostile", timeout=5, ack="true", fname="agentproof.toml"):
+def write_config(tmp_path, name="hostile", timeout=5, ack="true", fname="regressagent.toml"):
     f = tmp_path / fname
     f.write_text(
         f"[adapters.{name}]\n"
@@ -122,8 +122,8 @@ def test_config_without_acknowledgement_is_refused(tmp_path, capsys):
     assert "acknowledge_not_sandboxed" in capsys.readouterr().err
 
 
-def test_agentproof_toml_in_cwd_is_never_discovered(tmp_path, monkeypatch, capsys):
-    setup(tmp_path)  # writes tmp_path/agentproof.toml
+def test_regressagent_toml_in_cwd_is_never_discovered(tmp_path, monkeypatch, capsys):
+    setup(tmp_path)  # writes tmp_path/regressagent.toml
     monkeypatch.chdir(tmp_path)
     capsys.readouterr()
     assert cli(tmp_path, "run", "adapter-case", "--label", "a", "--adapter", "hostile") == 2

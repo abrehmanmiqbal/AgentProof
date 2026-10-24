@@ -1,4 +1,4 @@
-"""Best-effort secret redaction for data AgentProof *stores* (THREAT_MODEL #8).
+"""Best-effort secret redaction for data RegressAgent *stores* (THREAT_MODEL #8).
 
 This is a safety net, NOT a guarantee. It removes things that are recognisably secrets:
 - values of environment variables whose NAME looks secret (TOKEN, SECRET, PASSWORD, ... or ending

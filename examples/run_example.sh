@@ -5,19 +5,19 @@ set -u
 here="$(cd "$(dirname "$0")" && pwd)"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
-export AGENTPROOF_DB="$tmp/demo.db"
+export REGRESSAGENT_DB="$tmp/demo.db"
 
-for f in "$here"/cases/*.json; do agentproof case add "$f" || exit 2; done
+for f in "$here"/cases/*.json; do regressagent case add "$f" || exit 2; done
 
 echo "== before: the legacy runner has a greeting bug (exit 1 expected)"
-agentproof run greet-ava --label before --runner local-legacy
+regressagent run greet-ava --label before --runner local-legacy
 echo "exit=$?"
 
 echo "== after: the fixed runner (exit 0 expected)"
-agentproof run greet-ava --label after --runner local
+regressagent run greet-ava --label after --runner local
 echo "exit=$?"
 
 echo "== compare run 1 (before) with run 2 (after)"
-agentproof compare 1 2
+regressagent compare 1 2
 echo "== report"
-agentproof report 1 2
+regressagent report 1 2

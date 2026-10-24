@@ -7,8 +7,8 @@ from test_http_adapter import (
     server,  # noqa: F401  (fixture)
 )
 
-from agentproof.cli import main
-from agentproof.storage import Repository
+from regressagent.cli import main
+from regressagent.storage import Repository
 
 CASE = {
     "case_id": "web-case",
@@ -29,7 +29,7 @@ def setup(tmp_path, url, extra=""):
     case = tmp_path / "c.json"
     case.write_text(json.dumps(CASE))
     assert cli(tmp_path, "case", "add", str(case)) == 0
-    cfg = tmp_path / "agentproof.toml"
+    cfg = tmp_path / "regressagent.toml"
     cfg.write_text(f'[adapters.web]\ntype = "http"\nurl = "{url}"\n{extra}\n')
     cfg.chmod(0o600)
     return str(cfg)

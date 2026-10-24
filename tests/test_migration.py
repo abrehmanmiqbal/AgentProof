@@ -6,11 +6,11 @@ import sqlite3
 import pytest
 from pydantic import ValidationError
 
-from agentproof import storage
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase, RunMetadata
-from agentproof.regression import RegressionEngine
-from agentproof.runner import DeterministicLocalRunner
-from agentproof.storage import (
+from regressagent import storage
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase, RunMetadata
+from regressagent.regression import RegressionEngine
+from regressagent.runner import DeterministicLocalRunner
+from regressagent.storage import (
     SCHEMA_VERSION,
     Repository,
     SchemaTooNewError,

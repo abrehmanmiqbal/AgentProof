@@ -1,4 +1,7 @@
 # Test Evidence
+
+> **Naming note (D-016):** the project was renamed from AgentProof to RegressAgent on 2026-10-24. Entries below that mention `agentproof`, `AGENTPROOF_DB` or `agentproof.toml` record what was actually run under the old name and are kept as written.
+
 Only commands actually executed are listed. Environment: Linux container, Python 3.12.3 venv, pydantic 2.14.1, pytest 8.4.2, ruff 0.17.1. Python 3.11: NOT available/NOT tested. GitHub Actions: NOT observed.
 
 ## 2026-10-17 (session 1) — baseline
@@ -133,3 +136,9 @@ NOT verified: CI for the trace commit (checked after push); traces from real fra
 46. Black-box with the installed CLI and a real `http.server` agent on 127.0.0.1:8765 using the README config: without `MY_AGENT_TOKEN` -> run recorded as failed ("environment variable MY_AGENT_TOKEN is not set or empty", exit 1); with `MY_AGENT_TOKEN="Bearer tok123"` -> exit 0, the server saw the header; DB rows show runner `adapter:my-http-agent`, tier `H`, argv `["POST","http://127.0.0.1:8765/agent"]`, env names `["MY_AGENT_TOKEN"]`, exit_code 200; the token value does **not** appear anywhere in the DB file (`grep -c` = 0).
 NOT verified (HTTP adapter): a positive https connection to a certificate from a real CA (only "self-signed is rejected" was tested); real IPv6 connections (guard logic tested with faked DNS); DNS lookup time is not bounded by the deadline; proxies/HTTP2/client certs unsupported; macOS/Windows; CI for this commit (see below if recorded).
 47. CI on 60fbf8a (HTTP adapter commit): jobs `test (3.11)` and `test (3.12)` both success (API); so the local-server, watchdog and openssl-based TLS tests also pass on the GitHub runner. (CI for b71c352 was never checked individually; its successor passed.)
+
+## 2026-10-24 (session 9): rename AgentProof -> RegressAgent (D-016)
+48. Name check (HTTP, not legal advice): PyPI `regressagent` = 404 (free); GitHub repository search for `regressagent` in names = 0 results. Rejected candidates: `agentdiff` (35 GitHub repos), `agentreg` (61), `agentsnap`/`agentpin`/`agentgate`/`agentlock`/`agentverdict` (taken on PyPI). NOT checked: trademarks, domains, npm.
+49. Rename, test-first: tests/test_naming.py written first -> **3 failed**. After `git mv src/agentproof src/regressagent`, scripted replacement in code/tests/examples/config/living docs, reinstall (`pip install -e .` in both venvs): `ruff check .` clean, `pytest` **551 passed** on Python 3.12.3 and on 3.11.15. My scripted replacement also corrupted one doc sentence ("`regressagent` is taken on PyPI" in TASKS.md); found by grepping the living docs for "taken/D-013" and fixed by hand.
+50. Build and install under the new name: `python -m build` -> `regressagent-0.1.0` wheel + sdist, `twine check` PASSED for both, metadata `Name: regressagent`, `License-Expression: MIT`, entry point `regressagent = regressagent.cli:main`. Wheel installed in fresh venvs on 3.12 and 3.11: `regressagent demo` 0; case add x3; before run exit 1, after run exit 0; `compare` verdict `improved`; `report` title "RegressAgent report"; `REGRESSAGENT_DB` honoured; default DB file `regressagent.db`; the old `agentproof` command does not exist. `examples/run_example.sh` exit 0.
+NOT verified: CI for the rename commit (checked after push); the GitHub repository is still named AgentProof (owner action); old `AGENTPROOF_DB` is intentionally ignored now.

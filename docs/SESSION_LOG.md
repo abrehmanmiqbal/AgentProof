@@ -1,5 +1,7 @@
 # Session Log
 
+> **Naming note (D-016):** the project was renamed from AgentProof to RegressAgent on 2026-10-24. Entries below that mention `agentproof`, `AGENTPROOF_DB` or `agentproof.toml` record what was actually run under the old name and are kept as written.
+
 ## 2026-10-17 (session 1)
 - Repository was empty. Added AGENTS.md, memory docs, and first Python core slice (unexecuted).
 
@@ -39,3 +41,6 @@
 - Trace v1 + `case from-trace` (D-014), path-length cap, example trace; tests 376 -> 410; 5 mutations caught.
 - `matches_type` operator (strict JSON types); tests 410 -> 450.
 - HTTP adapter (D-015) with SSRF guard/pinning/watchdog, example config, README; tests 450 -> 548; 6 mutations caught; found+fixed a watchdog bug via the trickle test.
+
+## 2026-10-24 (session 9)
+- Owner delegated the name; chose RegressAgent (D-016) after PyPI/GitHub checks; renamed package, command, env var, defaults, docs; tests 548 -> 551; wheel and clean-install re-verified on 3.12 and 3.11.

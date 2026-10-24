@@ -1,8 +1,8 @@
-# AgentProof
+# RegressAgent
 
 **Open-source reliability engineering for AI agents.** Capture a behavior, turn it into a regression case, rerun it, and get an explicit assertion-based result.
 
-AgentProof is built free-first: the core loop runs locally without paid APIs, cloud hosting, or provider credentials.
+RegressAgent is built free-first: the core loop runs locally without paid APIs, cloud hosting, or provider credentials.
 
 ## Project status
 
@@ -10,13 +10,13 @@ Early development. Implemented and tested locally and in CI (Python 3.11 and 3.1
 
 ## Install
 
-Requires Python 3.11 or newer. AgentProof is **not published on PyPI**: install from a clone of this repository. **Do not run `pip install agentproof`**: that name on PyPI is a different project by someone else (see [D-013](docs/DECISIONS.md)).
+Requires Python 3.11 or newer. RegressAgent (formerly called AgentProof) is **not published on PyPI**: install from a clone of this repository. **Do not run `pip install agentproof`**: that is a different project by someone else (see [D-013](docs/DECISIONS.md) and [D-016](docs/DECISIONS.md)).
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 python -m pip install -e ".[dev]"
-pytest && agentproof demo
+pytest && regressagent demo
 ```
 
 ## The loop in 60 seconds
@@ -28,11 +28,11 @@ pytest && agentproof demo
 Or by hand:
 
 ```bash
-agentproof case add examples/cases/greet.json
-agentproof run greet-ava --label before --runner local-legacy   # fails, exit 1
-agentproof run greet-ava --label after  --runner local          # passes, exit 0
-agentproof compare 1 2                                          # verdict: improved
-agentproof report 1 2 --output report.md                        # shareable report
+regressagent case add examples/cases/greet.json
+regressagent run greet-ava --label before --runner local-legacy   # fails, exit 1
+regressagent run greet-ava --label after  --runner local          # passes, exit 0
+regressagent compare 1 2                                          # verdict: improved
+regressagent report 1 2 --output report.md                        # shareable report
 ```
 
 ## Case files
@@ -58,9 +58,9 @@ Limits (all enforced when the file is loaded; unknown fields are rejected): file
 A trace is one JSON file recording something your agent actually did: `{"trace_id": "...", "input": {...}, "output": {...}}` (unknown fields are rejected; max 1,000,000 bytes, nesting depth 32, no NaN/Infinity). Traces are data and are never executed.
 
 ```bash
-agentproof case from-trace examples/traces/greet-ava.json            # review the generated case
-agentproof case from-trace examples/traces/greet-ava.json --save     # or save it directly
-agentproof case from-trace trace.json --path message --path items.0.id --save
+regressagent case from-trace examples/traces/greet-ava.json            # review the generated case
+regressagent case from-trace examples/traces/greet-ava.json --save     # or save it directly
+regressagent case from-trace trace.json --path message --path items.0.id --save
 ```
 
 By default every scalar field of `output` becomes an `equals` assertion (at most 100; otherwise choose with `--path`). **Review the result:** it pins values exactly, including ones that may legitimately vary (timestamps, ids). Fields are skipped with a `note:` on stderr when the key is empty or contains `.`, the path is over 512 characters, a string is over 1,000 characters, or the value looks like a secret (per the redaction rules; secret values are never copied into a case). A secret-looking value in the trace `input` makes the command fail.
@@ -88,10 +88,10 @@ Every operator except `exists` fails if the path is missing. Use `^...$` to anch
 ## CLI reference
 
 ```
-agentproof [--db FILE] <command> ...
+regressagent [--db FILE] <command> ...
 ```
 
-`--db FILE` (or the `AGENTPROOF_DB` environment variable) selects the SQLite file; default `./agentproof.db`. It goes **before** the command. All commands print JSON unless noted; errors go to stderr as `error: ...`.
+`--db FILE` (or the `REGRESSAGENT_DB` environment variable) selects the SQLite file; default `./regressagent.db`. It goes **before** the command. All commands print JSON unless noted; errors go to stderr as `error: ...`.
 
 | Command | What it does |
 |---|---|
@@ -144,7 +144,7 @@ max_response_bytes = 1000000            # optional cap (max 1,000,000)
 Authorization = "MY_AGENT_TOKEN"
 ```
 
-Safety rules: the URL lives only in this file (no credentials, query or fragment in it; put secrets in `headers_env`, whose values are read from the environment at run time and never stored or printed). Non-loopback hosts must be listed in `allow_hosts` and use https. The host is resolved once, every address is checked and the connection is pinned to it: link-local (cloud metadata), unspecified, multicast and reserved addresses are always refused, and a host that is not allow-listed must resolve to loopback. Redirects are never followed; TLS certificates are always verified. The run records `adapter_tier` `H`, the URL, the HTTP status (in `exit_code`) and the header variable names. The case input is sent to that endpoint, so only point it at services you trust with that data. A full example: [`examples/agentproof.example.toml`](examples/agentproof.example.toml).
+Safety rules: the URL lives only in this file (no credentials, query or fragment in it; put secrets in `headers_env`, whose values are read from the environment at run time and never stored or printed). Non-loopback hosts must be listed in `allow_hosts` and use https. The host is resolved once, every address is checked and the connection is pinned to it: link-local (cloud metadata), unspecified, multicast and reserved addresses are always refused, and a host that is not allow-listed must resolve to loopback. Redirects are never followed; TLS certificates are always verified. The run records `adapter_tier` `H`, the URL, the HTTP status (in `exit_code`) and the header variable names. The case input is sent to that endpoint, so only point it at services you trust with that data. A full example: [`examples/regressagent.example.toml`](examples/regressagent.example.toml).
 
 ### Exit codes
 
@@ -158,7 +158,7 @@ A runner result larger than 1,000,000 bytes is not lost: it is recorded as a fai
 
 ## Security principles
 
-Recorded inputs, traces, and case files are data, not code. AgentProof must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for what is and is not mitigated (notably: stored outputs get best-effort secret redaction only, which is not a guarantee). AgentProof is released under the [MIT License](LICENSE) (D-011); see [CONTRIBUTING.md](CONTRIBUTING.md).
+Recorded inputs, traces, and case files are data, not code. RegressAgent must not execute arbitrary imported traces, and any adapter that runs user code or commands needs a documented isolation design first ([docs/DECISIONS.md](docs/DECISIONS.md)). Never commit secrets or real personal/medical data. See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for what is and is not mitigated (notably: stored outputs get best-effort secret redaction only, which is not a guarantee). RegressAgent is released under the [MIT License](LICENSE) (D-011); see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Development
 

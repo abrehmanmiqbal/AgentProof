@@ -2,7 +2,7 @@
 import tomllib
 from pathlib import Path
 
-import agentproof
+import regressagent
 
 ROOT = Path(__file__).resolve().parent.parent
 PROJECT = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -10,7 +10,7 @@ META = PROJECT["project"]
 
 
 def test_version_matches_the_package():
-    assert META["version"] == agentproof.__version__
+    assert META["version"] == regressagent.__version__
 
 
 def test_license_is_declared_and_shipped():
@@ -42,6 +42,6 @@ def test_no_claims_we_cannot_back():
     assert "Operating System :: OS Independent" not in classifiers  # only tested on Linux
 
 
-def test_readme_warns_that_the_pypi_name_belongs_to_another_project():
+def test_readme_warns_that_the_old_pypi_name_belongs_to_another_project():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "pip install agentproof" in readme and "different project" in readme

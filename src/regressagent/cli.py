@@ -1,4 +1,4 @@
-"""Command-line entry point for AgentProof.
+"""Command-line entry point for RegressAgent.
 
 Imported case files are untrusted data: they are size-capped, parsed as JSON only, and
 validated through typed models. Nothing in a case file is ever executed.
@@ -32,7 +32,7 @@ from .storage import (
 from .subprocess_adapter import SubprocessAdapter
 from .trace import MAX_TRACE_BYTES, TraceError, case_from_trace, parse_trace
 
-DEFAULT_DB = "agentproof.db"
+DEFAULT_DB = "regressagent.db"
 MAX_REPEAT = 20
 
 
@@ -82,10 +82,10 @@ def _demo() -> int:
     case = RegressionCase(
         case_id="demo-greeting",
         name="Deterministic greeting",
-        input={"action": "greet", "name": "AgentProof"},
+        input={"action": "greet", "name": "RegressAgent"},
         assertions=[
             AssertionSpec(
-                path="message", operator=AssertionOperator.EQUALS, expected="Hello, AgentProof!"
+                path="message", operator=AssertionOperator.EQUALS, expected="Hello, RegressAgent!"
             ),
             AssertionSpec(path="action", operator=AssertionOperator.EQUALS, expected="greet"),
         ],
@@ -128,7 +128,7 @@ def _resolve_runner(args: argparse.Namespace) -> tuple[str, Callable[[], Any]]:
     if args.runner is not None:
         raise CliError("--adapter and --runner cannot be used together")
     if args.config is None:
-        raise CliError("--adapter requires --config FILE (agentproof.toml is never auto-discovered)")
+        raise CliError("--adapter requires --config FILE (regressagent.toml is never auto-discovered)")
     config = load_config(args.config)
     adapter = config.adapters.get(args.adapter)
     if adapter is None:
@@ -152,7 +152,7 @@ def _add_runner_args(parser: argparse.ArgumentParser) -> None:
         "the configured command as YOU, without a sandbox: trusted code only. An http adapter "
         "sends the case input to the configured endpoint.",
     )
-    parser.add_argument("--config", help="agentproof.toml with [adapters.NAME] entries (explicit path).")
+    parser.add_argument("--config", help="regressagent.toml with [adapters.NAME] entries (explicit path).")
 
 
 def _run_repeated(
@@ -214,8 +214,8 @@ def _write_report(path: str, text: str, *, force: bool) -> None:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agentproof", description="Offline-first AI agent regression testing.")
-    parser.add_argument("--db", default=os.environ.get("AGENTPROOF_DB", DEFAULT_DB), help="SQLite file")
+    parser = argparse.ArgumentParser(prog="regressagent", description="Offline-first AI agent regression testing.")
+    parser.add_argument("--db", default=os.environ.get("REGRESSAGENT_DB", DEFAULT_DB), help="SQLite file")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("demo", help="Run the built-in offline demo case.")

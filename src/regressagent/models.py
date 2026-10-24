@@ -1,4 +1,4 @@
-"""Typed models used by AgentProof's regression-testing core."""
+"""Typed models used by RegressAgent's regression-testing core."""
 from __future__ import annotations
 
 import math

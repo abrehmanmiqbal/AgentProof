@@ -1,7 +1,7 @@
-# AgentProof — Agent Operating Rules
+# RegressAgent — Agent Operating Rules
 
 ## Mission
-Build AgentProof, a free-first, open-source reliability engineering platform for AI agents. Core loop: failed execution → saved regression test → proposed fix → rerun → assertion-based comparison → reproducible report.
+Build RegressAgent, a free-first, open-source reliability engineering platform for AI agents. Core loop: failed execution → saved regression test → proposed fix → rerun → assertion-based comparison → reproducible report.
 
 ## Mandatory workflow
 1. Inspect the existing repository and its instructions before changing code.

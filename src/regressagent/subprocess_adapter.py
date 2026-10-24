@@ -79,11 +79,11 @@ try:
     os.execve(sys.argv[3], sys.argv[4:], dict(os.environ))
 except BaseException:
     try:
-        os.write(2, b"AGENTPROOF_LAUNCHER_FAILED\n")
+        os.write(2, b"REGRESSAGENT_LAUNCHER_FAILED\n")
     finally:
         os._exit(125)
 """
-_LAUNCHER_MARKER = b"AGENTPROOF_LAUNCHER_FAILED"
+_LAUNCHER_MARKER = b"REGRESSAGENT_LAUNCHER_FAILED"
 
 
 class AdapterError(Exception):
@@ -162,7 +162,7 @@ class SubprocessAdapter:
             launcher_env["LD_LIBRARY_PATH"] = loader_path
             launcher_only.append("LD_LIBRARY_PATH")
 
-        workdir = tempfile.mkdtemp(prefix="agentproof-")
+        workdir = tempfile.mkdtemp(prefix="regressagent-")
         try:
             args = [
                 sys.executable, "-I", "-S", "-c", _LAUNCHER,

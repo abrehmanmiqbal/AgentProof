@@ -13,5 +13,5 @@ build/
 .coverage
 htmlcov/
 
-agentproof.db
+regressagent.db
 *.db

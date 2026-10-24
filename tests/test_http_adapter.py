@@ -8,10 +8,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 
-from agentproof import http_adapter
-from agentproof.config import load_config
-from agentproof.http_adapter import HttpAdapter
-from agentproof.subprocess_adapter import AdapterError
+from regressagent import http_adapter
+from regressagent.config import load_config
+from regressagent.http_adapter import HttpAdapter
+from regressagent.subprocess_adapter import AdapterError
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -98,7 +98,7 @@ def server():
 
 
 def make(tmp_path, url, extra="", headers="", environ=None):
-    f = tmp_path / "agentproof.toml"
+    f = tmp_path / "regressagent.toml"
     f.write_text(f'[adapters.web]\ntype = "http"\nurl = "{url}"\n{extra}\n{headers}', encoding="utf-8")
     f.chmod(0o600)
     return HttpAdapter(load_config(f).adapters["web"], environ=environ or {})
@@ -121,7 +121,7 @@ def test_request_headers_and_credentials_from_the_environment(tmp_path, server):
     adapter = make(tmp_path, server + "/headers", headers=headers, environ={"MY_TOKEN": "Bearer s3cr3t-value"})
     out = adapter.run({})
     assert out["auth"] == "Bearer s3cr3t-value" and out["ctype"] == "application/json"
-    assert out["host"].startswith("127.0.0.1:") and out["ua"].startswith("agentproof")
+    assert out["host"].startswith("127.0.0.1:") and out["ua"].startswith("regressagent")
     stored = adapter.last_metadata.model_dump_json()
     assert "s3cr3t-value" not in stored and "MY_TOKEN" in stored  # names only, never values
 

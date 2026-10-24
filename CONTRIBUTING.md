@@ -1,4 +1,4 @@
-# Contributing to AgentProof
+# Contributing to RegressAgent
 
 Thanks for helping. Read `AGENTS.md` first: it holds the operating rules and security guardrails, and they apply to humans and AI agents alike.
 
@@ -6,7 +6,7 @@ Thanks for helping. Read `AGENTS.md` first: it holds the operating rules and sec
 ```
 python -m venv .venv && . .venv/bin/activate
 pip install -e ".[dev]"
-ruff check . && pytest && agentproof demo
+ruff check . && pytest && regressagent demo
 ```
 All three must pass before and after your change (CI runs them on Python 3.11 and 3.12).
 

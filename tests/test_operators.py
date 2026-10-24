@@ -6,11 +6,11 @@ import time
 import pytest
 from pydantic import ValidationError
 
-from agentproof.assertions import evaluate_assertion
-from agentproof.cli import main
-from agentproof.models import AssertionOperator as Op
-from agentproof.models import AssertionSpec
-from agentproof.regex_safety import MAX_TEXT_LENGTH
+from regressagent.assertions import evaluate_assertion
+from regressagent.cli import main
+from regressagent.models import AssertionOperator as Op
+from regressagent.models import AssertionSpec
+from regressagent.regex_safety import MAX_TEXT_LENGTH
 
 GT, LT, RX = Op("gt"), Op("lt"), Op("regex")
 
@@ -216,7 +216,7 @@ def test_report_with_regex_pattern_is_escaped(tmp_path, capsys):
 
 # ---------------------------------------------------------------- assertion-count cap
 def _case_with(n):
-    from agentproof.models import RegressionCase
+    from regressagent.models import RegressionCase
 
     return RegressionCase(
         case_id="many",

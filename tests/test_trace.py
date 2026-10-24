@@ -4,11 +4,11 @@ import json
 
 import pytest
 
-from agentproof.assertions import evaluate_assertion
-from agentproof.cli import load_case_file, main
-from agentproof.models import MAX_ASSERTIONS
-from agentproof.runner import DeterministicLocalRunner
-from agentproof.trace import TraceError, case_from_trace, parse_trace
+from regressagent.assertions import evaluate_assertion
+from regressagent.cli import load_case_file, main
+from regressagent.models import MAX_ASSERTIONS
+from regressagent.runner import DeterministicLocalRunner
+from regressagent.trace import TraceError, case_from_trace, parse_trace
 
 GITHUB_TOKEN = "github_pat_" + "A1b2C3d4E5" * 3  # fake, but matches the token pattern
 

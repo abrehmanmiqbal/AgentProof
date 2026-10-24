@@ -1,5 +1,7 @@
 # Changelog
 
+> **Naming note (D-016):** the project was renamed from AgentProof to RegressAgent on 2026-10-24. Entries below that mention `agentproof`, `AGENTPROOF_DB` or `agentproof.toml` record what was actually run under the old name and are kept as written.
+
 User-visible changes are recorded here. This project has not had a software release yet.
 
 ## Unreleased
@@ -31,3 +33,4 @@ User-visible changes are recorded here. This project has not had a software rele
 - Added `case from-trace` and `agentproof.trace` (trace v1 format, strict JSON, redaction-aware, bounded; prints or `--save`s a case). Added `examples/traces/greet-ava.json`. `case from-trace --save` on an existing id now says to use `--overwrite`.
 - Added assertion operator `matches_type` (JSON type check: string/number/integer/boolean/null/object/array, or a list of alternatives; strict booleans/integers; unknown names rejected at load).
 - Added the HTTP adapter (`[adapters.NAME] type = "http"`, `agentproof.http_adapter`, D-015): POSTs the case input as JSON; loopback by default, other hosts need `allow_hosts` + https; SSRF guard with a pinned connection, no redirects, TLS verification, response-size cap and one total deadline enforced by a watchdog, credentials from env vars. Runs are recorded with `adapter_tier = "H"`. Added `examples/agentproof.example.toml`.
+- **BREAKING (never released): renamed AgentProof -> RegressAgent** (D-016): package/command `regressagent`, env var `REGRESSAGENT_DB`, default DB `regressagent.db`, example config `examples/regressagent.example.toml`. Added tests/test_naming.py to keep the old name out of code. The GitHub repository itself must be renamed by the owner.

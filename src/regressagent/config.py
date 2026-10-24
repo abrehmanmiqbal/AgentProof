@@ -1,4 +1,4 @@
-"""Loader for the local, user-authored ``agentproof.toml`` (D-010, ADAPTER_ISOLATION.md s2/s8).
+"""Loader for the local, user-authored ``regressagent.toml`` (D-010, ADAPTER_ISOLATION.md s2/s8).
 
 This module only *parses and validates*. It never executes anything, never opens or hashes the
 executables it names, and never contacts the network: existence, realpath and SHA-256 checks

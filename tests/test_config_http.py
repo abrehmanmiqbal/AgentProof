@@ -3,11 +3,11 @@ import json
 
 import pytest
 
-from agentproof.config import ConfigError, HttpAdapterConfig, load_config
+from regressagent.config import ConfigError, HttpAdapterConfig, load_config
 
 
 def load(tmp_path, body: str):
-    f = tmp_path / "agentproof.toml"
+    f = tmp_path / "regressagent.toml"
     f.write_text(body, encoding="utf-8")
     f.chmod(0o600)
     return load_config(f)

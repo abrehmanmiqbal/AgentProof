@@ -1,4 +1,4 @@
-# AgentProof report: greet-ava
+# RegressAgent report: greet-ava
 
 - Verdict: **IMPROVED**
 - Before run: 1

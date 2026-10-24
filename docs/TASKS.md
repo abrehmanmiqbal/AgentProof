@@ -44,7 +44,7 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 ## Milestone 5 — Security and robustness
 - [x] Case files: size cap (1,000,000 bytes), JSON-only parse, typed validation, `extra=forbid`; hostile/malformed/deep-nesting/invalid-UTF-8 probes rejected cleanly.
 - [x] Regex safety (ReDoS): validation at case load, text cap, cost model, fuzzed (D-009). Assertion count capped at 100.
-- [x] Best-effort secret redaction of stored results and run metadata (src/agentproof/redaction.py; limits documented, NOT a guarantee). [ ] Limit assertion depth/path length.
+- [x] Best-effort secret redaction of stored results and run metadata (src/regressagent/redaction.py; limits documented, NOT a guarantee). [ ] Limit assertion depth/path length.
 - [x] Tier A subprocess adapter + hostile test agent (reachable from the CLI since session 8: `run`/`run-all --adapter NAME --config FILE`). [ ] Tier B (bubblewrap), HTTP adapter.
 - [x] Isolation design written: docs/ADAPTER_ISOLATION.md + D-010 (status PROPOSED; design only, nothing implemented/tested). [x] D-010 accepted 2026-10-18 (owner delegated answers); adapter code may now be written test-first, Linux only.
 - [x] Threat model doc: docs/THREAT_MODEL.md (honest status per threat; secrets redaction is best-effort only).
@@ -55,4 +55,5 @@ _[x] = done AND verified by an executed check (see TEST_EVIDENCE.md). Local-only
 - [x] Clean-install verification on 3.11 and 3.12 (fresh clone, editable and wheel installs; session 8, TEST_EVIDENCE #30-33).
 
 ## Milestone 7 — Distribution readiness
-- [x] PyPI/GitHub name check done: **`agentproof` is taken on PyPI** (D-013 OPEN, owner decision). [ ] Release notes. Do not publish without authorization.
+- [x] Name conflict (old name `agentproof` taken on PyPI) resolved: renamed to RegressAgent, D-016 (PyPI and GitHub names free on 2026-10-24). [ ] Owner: rename the GitHub repository and then update URLs (see D-016). [ ] Release notes. Do not publish without authorization.
+- [x] Name conflict resolved: renamed to RegressAgent (D-016). [ ] Owner: rename the GitHub repo, then update URLs (see D-016).

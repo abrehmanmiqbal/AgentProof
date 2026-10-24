@@ -8,8 +8,8 @@ import time
 
 import pytest
 
-from agentproof import cli
-from agentproof.models import (
+from regressagent import cli
+from regressagent.models import (
     AssertionOperator,
     AssertionResult,
     AssertionSpec,
@@ -17,10 +17,10 @@ from agentproof.models import (
     RegressionResult,
     RunMetadata,
 )
-from agentproof.redaction import Redactor
-from agentproof.regression import RegressionEngine
-from agentproof.runner import DeterministicLocalRunner
-from agentproof.storage import Repository
+from regressagent.redaction import Redactor
+from regressagent.regression import RegressionEngine
+from regressagent.runner import DeterministicLocalRunner
+from regressagent.storage import Repository
 
 ALPHA = "A1b2C3d4E5f6G7h8I9j0K"
 

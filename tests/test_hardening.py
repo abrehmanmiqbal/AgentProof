@@ -1,7 +1,7 @@
 """Regression tests for defects found when the core was first executed (2026-10-17)."""
-from agentproof.assertions import evaluate_assertion
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase
-from agentproof.regression import RegressionEngine
+from regressagent.assertions import evaluate_assertion
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase
+from regressagent.regression import RegressionEngine
 
 
 def _spec(path, op=AssertionOperator.EXISTS, expected=None):

@@ -144,7 +144,7 @@ class HttpAdapter:
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": f"agentproof/{__version__}",
+            "User-Agent": f"regressagent/{__version__}",
             "Connection": "close",
         }
         for header, env in self._config.headers_env:

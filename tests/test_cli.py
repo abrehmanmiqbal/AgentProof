@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from agentproof.cli import main
+from regressagent.cli import main
 
 CASE = {
     "case_id": "greet-ava",
@@ -197,7 +197,7 @@ def test_report_output_refuses_overwrite_without_force(tmp_path, capsys):
     assert "--force" in capsys.readouterr().err
     assert target.read_text() == "precious"
     assert cli(tmp_path, "report", "1", "2", "--output", str(target), "--force") == 0
-    assert target.read_text().startswith("# AgentProof report")
+    assert target.read_text().startswith("# RegressAgent report")
 
 
 def test_report_output_bad_path_is_clean_error(tmp_path, capsys):
@@ -233,7 +233,7 @@ def test_run_default_output_format_unchanged(tmp_path, capsys):
 
 
 def test_run_repeat_detects_flaky_runner(tmp_path, capsys, monkeypatch):
-    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+    from regressagent.runner import RUNNERS, DeterministicLocalRunner
 
     class Flaky(DeterministicLocalRunner):
         calls = 0
@@ -301,7 +301,7 @@ def test_run_all_repeat_records_n_runs_per_case(tmp_path, capsys):
 
 
 def test_run_all_repeat_flags_unstable_case_and_exits_1(tmp_path, capsys, monkeypatch):
-    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+    from regressagent.runner import RUNNERS, DeterministicLocalRunner
 
     class Flaky(DeterministicLocalRunner):
         calls = 0
@@ -335,7 +335,7 @@ def test_run_all_repeat_out_of_range_is_rejected_and_records_nothing(tmp_path, c
 
 # ---------------------------------------------------------------- oversized runner output
 def test_oversized_runner_output_is_recorded_as_failed_run(tmp_path, capsys, monkeypatch):
-    from agentproof.runner import RUNNERS, DeterministicLocalRunner
+    from regressagent.runner import RUNNERS, DeterministicLocalRunner
 
     class Huge(DeterministicLocalRunner):
         def run(self, input_data):

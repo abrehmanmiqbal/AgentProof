@@ -47,7 +47,7 @@ def render_markdown(comparison: Comparison) -> str:
     before_id = "n/a" if c.before_run_id is None else str(c.before_run_id)
     after_id = "n/a" if c.after_run_id is None else str(c.after_run_id)
     lines = [
-        f"# AgentProof report: {_clean(c.case_id, MAX_CELL_CHARS)}",
+        f"# RegressAgent report: {_clean(c.case_id, MAX_CELL_CHARS)}",
         "",
         f"- Verdict: **{c.verdict.value.upper()}**",
         f"- Before run: {before_id}",

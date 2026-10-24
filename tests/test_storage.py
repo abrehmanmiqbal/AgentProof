@@ -2,10 +2,10 @@ import sqlite3
 
 import pytest
 
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase
-from agentproof.regression import RegressionEngine
-from agentproof.runner import DeterministicLocalRunner
-from agentproof.storage import (
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase
+from regressagent.regression import RegressionEngine
+from regressagent.runner import DeterministicLocalRunner
+from regressagent.storage import (
     SCHEMA_VERSION,
     CaseExistsError,
     NotFoundError,

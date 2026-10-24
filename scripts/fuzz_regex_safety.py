@@ -11,7 +11,7 @@ import random
 import subprocess
 import sys
 
-from agentproof.regex_safety import MAX_TEXT_LENGTH, UnsafeRegexError, validate_pattern
+from regressagent.regex_safety import MAX_TEXT_LENGTH, UnsafeRegexError, validate_pattern
 
 TOKENS = [
     "a", "b", "a*", "a+", "a?", "a{1,3}", "a{0,10}", "a{2}", "[ab]*", "[ab]+", ".", ".*", ".+",

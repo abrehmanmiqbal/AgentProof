@@ -40,4 +40,4 @@ jobs:
           tail -3 pytest.log | cut -c1-250 | while IFS= read -r line; do
             echo "::warning title=pytest tail::${line}"
           done
-      - run: agentproof demo
+      - run: regressagent demo

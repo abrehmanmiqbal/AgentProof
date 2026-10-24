@@ -1,7 +1,7 @@
-from agentproof.assertions import evaluate_assertion
-from agentproof.models import AssertionOperator, AssertionSpec, RegressionCase
-from agentproof.regression import RegressionEngine
-from agentproof.runner import DeterministicLocalRunner
+from regressagent.assertions import evaluate_assertion
+from regressagent.models import AssertionOperator, AssertionSpec, RegressionCase
+from regressagent.regression import RegressionEngine
+from regressagent.runner import DeterministicLocalRunner
 
 
 def test_local_runner_is_deterministic_and_offline():

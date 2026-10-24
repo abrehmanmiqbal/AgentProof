@@ -1,12 +1,12 @@
 # Adapter Isolation Design (D-010)
 
-**Status: ACCEPTED (D-010, 2026-10-18; owner delegated the answers). Implementation in progress: section 8 step 1 (DB migration v2 + `RunMetadata`) step 2 (`agentproof.toml` loader, parse/validate only) and step 3 (hostile test agent + Tier A subprocess adapter, `src/agentproof/subprocess_adapter.py`, Linux only) are done and tested (session 7, see D-012 for refinements of this design); CLI wiring, HTTP adapter and Tier B are still unimplemented and untested.** No adapter that runs user code, commands, or network calls may be written until the owner has reviewed this document and its open questions (end of file). Environment facts checked in session 4 (Linux 6.18, container, uid 0): `resource`, `os.killpg`, `tomllib` (stdlib, Python 3.11+) are available; `unshare` exists; `bwrap`, `docker`, `podman`, `nsjail`, `firejail` are **not** installed here, so no sandbox tier below has been tried.
+**Status: ACCEPTED (D-010, 2026-10-18; owner delegated the answers). Implementation in progress: section 8 step 1 (DB migration v2 + `RunMetadata`) step 2 (`regressagent.toml` loader, parse/validate only) and step 3 (hostile test agent + Tier A subprocess adapter, `src/regressagent/subprocess_adapter.py`, Linux only) are done and tested (session 7, see D-012 for refinements of this design); CLI wiring, HTTP adapter and Tier B are still unimplemented and untested.** No adapter that runs user code, commands, or network calls may be written until the owner has reviewed this document and its open questions (end of file). Environment facts checked in session 4 (Linux 6.18, container, uid 0): `resource`, `os.killpg`, `tomllib` (stdlib, Python 3.11+) are available; `unshare` exists; `bwrap`, `docker`, `podman`, `nsjail`, `firejail` are **not** installed here, so no sandbox tier below has been tried.
 
 ## 1. Problem
 Today only built-in demo runners exist. A real adapter would start the user's agent (a command or an HTTP endpoint) and feed it recorded inputs. The agent is untrusted-ish: buggy, nondeterministic, possibly compromised, and its output can be hostile. The tool itself must not become a way to run attacker-controlled code on the user's machine (D-004).
 
 ## 2. Hard rules (apply to every adapter)
-1. **Case files and traces never contain commands, URLs, paths to executables or environment variables.** They contain only the agent *input* and assertions. A case refers to an adapter by *name*; the mapping name -> command lives in a separate, local, user-authored config file (`agentproof.toml`, parsed with stdlib `tomllib`), never in the database or imported data.
+1. **Case files and traces never contain commands, URLs, paths to executables or environment variables.** They contain only the agent *input* and assertions. A case refers to an adapter by *name*; the mapping name -> command lives in a separate, local, user-authored config file (`regressagent.toml`, parsed with stdlib `tomllib`), never in the database or imported data.
 2. **Adapters are off by default.** Using one requires the config entry plus an explicit opt-in at run time (e.g. `--adapter NAME`); there is no implicit discovery.
 3. **No in-process execution of user code** (no `import`/`exec` of user modules, no plugin loading). Isolation is by process boundary only.
 4. **No shell.** Commands are an argv list with `shell=False`; the executable must be an absolute path (resolved with `realpath`) that exactly matches the config entry; its SHA-256 is recorded with each run.
@@ -25,7 +25,7 @@ Process-level limits and hygiene. **Tier A does not stop the child from reading 
 - **Windows:** no rlimits/process groups equivalent without Job Objects; adapters are **unsupported on Windows** until a Job Object design exists (refuse, do not degrade).
 
 ### Tier B: sandbox (strong isolation, optional)
-Run the Tier A command inside an external sandbox: network disabled, read-only filesystem except the temp dir, no access to the home directory, dropped capabilities. Candidates: `bwrap` (bubblewrap), `nsjail`, or a container runtime (`docker`/`podman`). Requirements: fail closed if the configured sandbox binary is absent; the sandbox command line is built by AgentProof from structured config (never from case data); one integration test per promised property (e.g. "child cannot read `~/.ssh`", "child cannot open a socket"). Not available on this machine, so **untested**; adding a dependency on an external tool is an owner decision (question 2).
+Run the Tier A command inside an external sandbox: network disabled, read-only filesystem except the temp dir, no access to the home directory, dropped capabilities. Candidates: `bwrap` (bubblewrap), `nsjail`, or a container runtime (`docker`/`podman`). Requirements: fail closed if the configured sandbox binary is absent; the sandbox command line is built by RegressAgent from structured config (never from case data); one integration test per promised property (e.g. "child cannot read `~/.ssh`", "child cannot open a socket"). Not available on this machine, so **untested**; adding a dependency on an external tool is an owner decision (question 2).
 
 ## 4. HTTP adapter (IMPLEMENTED in session 8, see D-015; this section is the original design)
 - Target comes from config only; default allow-list is `localhost`/`127.0.0.1`. Other hosts need an explicit entry.
@@ -46,7 +46,7 @@ infinite loop (timeout kills it, no leftover processes); fork bomb / many childr
 
 ## 8. Implementation order (each step its own commit, test-first)
 1. DB migration v2 + run metadata model (no execution).
-2. `agentproof.toml` loader with strict validation (no execution).
+2. `regressagent.toml` loader with strict validation (no execution).
 3. Hostile test agent + Tier A subprocess adapter, Linux only, tests above.
 4. CLI wiring (`--adapter`), README "what Tier A does NOT protect against" section.
 5. HTTP adapter with SSRF tests.
@@ -62,7 +62,7 @@ Protecting against a kernel exploit, hardware side channels, or a malicious *use
 4. Default limits: 30 s timeout, 1 MB stdout, 512 MB address space: OK?
 
 ### Answers (2026-10-18, accepted via D-010; owner may override)
-1. **Tier A first: yes, as "trusted code only".** The CLI and docs must say so, and an `agentproof.toml` adapter entry is refused unless it carries an explicit trust acknowledgement key. Tier A must never be described as a sandbox. Tier B follows as a separate milestone.
+1. **Tier A first: yes, as "trusted code only".** The CLI and docs must say so, and an `regressagent.toml` adapter entry is refused unless it carries an explicit trust acknowledgement key. Tier A must never be described as a sandbox. Tier B follows as a separate milestone.
 2. **Tier B target: bubblewrap** (unprivileged, no daemon, small). It is an optional external tool, never a Python dependency; if it is missing the run is refused (fail closed). Docker/podman may be added later under the same rule. Each promised property needs its own integration test, and none can be claimed until bubblewrap is available and tested (not installed in the dev environment so far).
 3. **Platforms: Linux implemented and tested first.** macOS only after tests run on macOS (RLIMIT_AS is unreliable there). Windows: refuse, do not degrade.
 4. **Limits: 30 s timeout, 1 MB stdout, 512 MB address space kept as defaults.** Overridable per adapter in config up to the hard maxima (timeout 300 s); RLIMIT_AS may need raising for Node/JVM agents, which must be documented.

@@ -1,11 +1,11 @@
-"""Tests for the agentproof.toml loader. The loader only parses and validates; it never
+"""Tests for the regressagent.toml loader. The loader only parses and validates; it never
 executes anything and never touches the executables it names (D-010, section 8 step 2)."""
 import os
 from pathlib import Path
 
 import pytest
 
-from agentproof.config import (
+from regressagent.config import (
     DEFAULT_MAX_STDOUT_BYTES,
     DEFAULT_MEMORY_LIMIT_BYTES,
     DEFAULT_TIMEOUT_SECONDS,
@@ -22,7 +22,7 @@ acknowledge_not_sandboxed = true
 """
 
 
-def write(tmp_path: Path, text: str | bytes, name: str = "agentproof.toml") -> Path:
+def write(tmp_path: Path, text: str | bytes, name: str = "regressagent.toml") -> Path:
     path = tmp_path / name
     if isinstance(text, bytes):
         path.write_bytes(text)

@@ -1,15 +1,15 @@
 import json
 from pathlib import Path
 
-from agentproof.cli import main
-from agentproof.comparison import (
+from regressagent.cli import main
+from regressagent.comparison import (
     AssertionChange,
     AssertionDiff,
     Comparison,
     Verdict,
 )
-from agentproof.models import AssertionOperator
-from agentproof.report import render_json, render_markdown
+from regressagent.models import AssertionOperator
+from regressagent.report import render_json, render_markdown
 
 GOLDEN = Path(__file__).parent / "golden" / "report_improved.md"
 
@@ -129,7 +129,7 @@ def test_cli_report_markdown_default(tmp_path, capsys):
     capsys.readouterr()
     assert main([*db, "report", "1", "2"]) == 0
     out = capsys.readouterr().out
-    assert out.startswith("# AgentProof report: greet-ava")
+    assert out.startswith("# RegressAgent report: greet-ava")
     assert "Verdict: **IMPROVED**" in out
 
 

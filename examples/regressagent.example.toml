@@ -1,4 +1,4 @@
-# Copy to your own agentproof.toml and pass it explicitly: --config agentproof.toml
+# Copy to your own regressagent.toml and pass it explicitly: --config regressagent.toml
 # (it is never auto-discovered). Keep it private: it must not be group/world writable.
 
 # 1) Run a local command as an agent. Tier A is NOT a sandbox: the command runs as you.
